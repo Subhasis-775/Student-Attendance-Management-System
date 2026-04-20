@@ -61,6 +61,10 @@
   /* Layout Dimensions */
   --sidebar-w: 240px;
   --topbar-h: 64px;
+
+  /* Typography */
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-display: 'Outfit', var(--font-sans);
 }
 
 .dark {
@@ -97,7 +101,7 @@
 }
 
 body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  font-family: var(--font-sans);
   background-color: var(--bg-base);
   color: var(--text-primary);
   -webkit-font-smoothing: antialiased;
@@ -158,10 +162,11 @@ ul, ol { list-style: none; }
 }
 
 .brand-title {
-  font-size: 15px;
-  font-weight: 600;
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 700;
   color: var(--text-primary);
-  letter-spacing: -0.01em;
+  letter-spacing: -0.02em;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -238,6 +243,7 @@ ul, ol { list-style: none; }
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--border-subtle);
+  box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.05);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -296,7 +302,8 @@ ul, ol { list-style: none; }
 
 /* ===================== TYPOGRAPHY ===================== */
 .page-title {
-  font-size: 24px;
+  font-family: var(--font-display);
+  font-size: clamp(24px, 4vw, 32px);
   font-weight: 600;
   letter-spacing: -0.02em;
   color: var(--text-primary);
@@ -317,7 +324,8 @@ ul, ol { list-style: none; }
 }
 
 .section-title {
-  font-size: 16px;
+  font-family: var(--font-display);
+  font-size: 18px;
   font-weight: 600;
   letter-spacing: -0.01em;
   color: var(--text-primary);
@@ -328,7 +336,7 @@ ul, ol { list-style: none; }
   background-color: var(--bg-surface);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow-sm), inset 0 1px 0 rgba(255, 255, 255, 0.05);
   overflow: hidden;
   transition: box-shadow 0.2s ease, transform 0.2s ease;
 }
@@ -546,6 +554,10 @@ ul, ol { list-style: none; }
   background-color: var(--bg-surface-hover);
 }
 
+.table-clean tbody tr:nth-child(even) td {
+  background-color: color-mix(in srgb, var(--bg-surface-hover) 60%, transparent);
+}
+
 .table-clean tbody tr:last-child td {
   border-bottom: none;
 }
@@ -610,6 +622,43 @@ ul, ol { list-style: none; }
   background-color: var(--bg-surface);
   color: var(--amber-600);
   box-shadow: var(--shadow-sm);
+}
+
+.table-search-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.table-search-icon {
+  position: absolute;
+  left: 10px;
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+.table-search-input {
+  width: 220px;
+  padding-left: 32px;
+  padding-right: 34px;
+}
+
+.table-clear-btn {
+  position: absolute;
+  right: 4px;
+  width: 26px;
+  height: 26px;
+}
+
+.faculty-action-bar {
+  position: sticky;
+  bottom: 0;
+  z-index: 12;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 10px 14px;
+  box-shadow: var(--shadow-md);
 }
 
 /* ===================== PROGRESS / METERS ===================== */

@@ -3,12 +3,16 @@ import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import Layout from '../components/Layout';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
-import { LayoutDashboard, BookOpen, GraduationCap, Clock, CheckCircle2, XCircle, Calendar, User } from 'lucide-react';
+import { LayoutDashboard, BookOpen, GraduationCap, Clock, CheckCircle2, XCircle, Calendar, User, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, X } from 'lucide-react';
+
+const ITEMS_PER_PAGE = 6;
 
 const StudentDashboard = () => {
   const [stats, setStats] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(ITEMS_PER_PAGE);
   const { user } = useAuth();
   
   const navItems = [
@@ -46,13 +50,26 @@ const StudentDashboard = () => {
     s.course.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
     s.course.courseCode.toLowerCase().includes(searchQuery.toLowerCase())
   );
+  const totalPages = Math.ceil(filteredStats.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedStats = filteredStats.slice(startIndex, startIndex + itemsPerPage);
 
-  const chartData = filteredStats.map(s => ({
+  const chartData = paginatedStats.map(s => ({
     name: s.course.courseCode,
     percentage: parseFloat(s.percentage),
     present: s.cappedPresentClasses,
     total: s.cappedTotalClasses,
   }));
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, itemsPerPage]);
+
+  useEffect(() => {
+    if (totalPages > 0 && currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
 
   const getBarColor = (pct) => pct >= 75 ? 'var(--green-500)' : pct >= 50 ? 'var(--amber-500)' : 'var(--red-500)';
   
@@ -156,9 +173,23 @@ const StudentDashboard = () => {
           <div className="card">
             <div className="section-head" style={{ padding: '20px 24px 0' }}>
               <span className="section-title">Enrolled Subjects</span>
-              {filteredStats.some(s => parseFloat(s.percentage) < 75) && (
-                <span className="badge badge-amber">Warning: Low Attendance</span>
-              )}
+              <div className="flex-start" style={{ gap: '8px', flexWrap: 'wrap' }}>
+                <span className="badge badge-neutral">Matches: {filteredStats.length}</span>
+                {searchQuery && (
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    style={{ height: '30px', padding: '0 10px', fontSize: '12px' }}
+                    onClick={() => setSearchQuery('')}
+                  >
+                    <X size={12} />
+                    Clear Search
+                  </button>
+                )}
+                {filteredStats.some(s => parseFloat(s.percentage) < 75) && (
+                  <span className="badge badge-amber">Warning: Low Attendance</span>
+                )}
+              </div>
             </div>
             
             <div className="table-container">
@@ -185,7 +216,7 @@ const StudentDashboard = () => {
                       </td>
                     </tr>
                   ) : (
-                    filteredStats.map(s => {
+                    paginatedStats.map(s => {
                       const pct = parseFloat(s.percentage);
                       const isLow = pct < 75;
                       const maxC = s.course.maxClasses || (s.course.type === 'lab' ? 10 : 30);
@@ -219,6 +250,67 @@ const StudentDashboard = () => {
                 </tbody>
               </table>
             </div>
+            {filteredStats.length > 0 && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 24px', borderTop: '1px solid var(--border-subtle)', gap: '12px', flexWrap: 'wrap' }}>
+                <span style={{ fontSize: '12px', color: 'var(--gray-500)' }}>
+                  Showing {startIndex + 1}-{Math.min(startIndex + itemsPerPage, filteredStats.length)} of {filteredStats.length} subjects
+                </span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <select
+                    className="input-sys"
+                    style={{ width: '88px', height: '32px', fontSize: '12px' }}
+                    value={itemsPerPage}
+                    onChange={(e) => setItemsPerPage(Number(e.target.value))}
+                    aria-label="Rows per page"
+                  >
+                    <option value={3}>3 / page</option>
+                    <option value={6}>6 / page</option>
+                    <option value={12}>12 / page</option>
+                  </select>
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    style={{ padding: '4px 10px' }}
+                    onClick={() => setCurrentPage(1)}
+                    disabled={currentPage === 1}
+                    aria-label="Go to first page"
+                  >
+                    <ChevronsLeft size={14} />
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    style={{ padding: '4px 10px' }}
+                    onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                    disabled={currentPage === 1}
+                  >
+                    <ChevronLeft size={14} />
+                  </button>
+                  <span style={{ fontSize: '12px', color: 'var(--gray-500)' }}>
+                    Page {currentPage} of {totalPages || 1}
+                  </span>
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    style={{ padding: '4px 10px' }}
+                    onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                    disabled={currentPage >= totalPages}
+                  >
+                    <ChevronRight size={14} />
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    style={{ padding: '4px 10px' }}
+                    onClick={() => setCurrentPage(totalPages)}
+                    disabled={currentPage >= totalPages}
+                    aria-label="Go to last page"
+                  >
+                    <ChevronsRight size={14} />
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </>
       )}

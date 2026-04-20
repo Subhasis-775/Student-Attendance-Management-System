@@ -2,6 +2,7 @@ import React from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { Blocks, CheckCircle2, BarChart3, Layers, ShieldCheck, ArrowRight } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { motion } from 'framer-motion';
 
 const Home = () => {
   const { user } = useAuth();
@@ -51,14 +52,35 @@ const Home = () => {
 
       {/* Hero Section */}
       <header style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '120px 24px', textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
-        {/* Subtle Background Pattern */}
-        <div style={{ position: 'absolute', inset: 0, backgroundImage: 'radial-gradient(var(--border-strong) 1px, transparent 1px)', backgroundSize: '32px 32px', opacity: 0.4, pointerEvents: 'none' }}></div>
+        {/* Subtle Background Pattern & Ambient Gradient */}
+        <div style={{ position: 'absolute', inset: 0, backgroundImage: 'radial-gradient(var(--border-strong) 1px, transparent 1px)', backgroundSize: '32px 32px', opacity: 0.4, pointerEvents: 'none', zIndex: 1 }}></div>
         
-        <div style={{ position: 'relative', zIndex: 10, maxWidth: '800px', margin: '0 auto' }}>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'var(--bg-surface-hover)', padding: '6px 12px', borderRadius: '20px', fontSize: '13px', fontWeight: 600, color: 'var(--primary-600)', marginBottom: '24px', border: '1px solid var(--border-subtle)' }}>
+        <motion.div 
+          animate={{ scale: [1, 1.1, 1], rotate: [0, 90, 0] }}
+          transition={{ duration: 30, repeat: Infinity, ease: 'linear' }}
+          style={{ position: 'absolute', top: '-30%', left: '-10%', width: '600px', height: '600px', background: 'var(--primary-500)', opacity: 0.15, filter: 'blur(120px)', zIndex: 0, pointerEvents: 'none', borderRadius: '50%' }}
+        />
+        <motion.div 
+          animate={{ scale: [1, 1.2, 1], rotate: [0, -90, 0] }}
+          transition={{ duration: 40, repeat: Infinity, ease: 'linear' }}
+          style={{ position: 'absolute', bottom: '-20%', right: '-10%', width: '500px', height: '500px', background: 'var(--green-500)', opacity: 0.1, filter: 'blur(100px)', zIndex: 0, pointerEvents: 'none', borderRadius: '50%' }}
+        />
+        
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, ease: "easeOut" }}
+          style={{ position: 'relative', zIndex: 10, maxWidth: '800px', margin: '0 auto' }}
+        >
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.2 }}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'var(--bg-surface-hover)', padding: '6px 12px', borderRadius: '20px', fontSize: '13px', fontWeight: 600, color: 'var(--primary-600)', marginBottom: '24px', border: '1px solid var(--border-subtle)' }}
+          >
             <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--primary-500)', display: 'inline-block' }}></span> 
             SaaS Academic Operations
-          </div>
+          </motion.div>
           <h1 style={{ fontSize: '56px', fontWeight: 800, letterSpacing: '-0.03em', lineHeight: '1.1', marginBottom: '24px', color: 'var(--text-primary)' }}>
             Attendance tracking, <br />
             <span style={{ color: 'var(--primary-500)' }}>magnificently simplified.</span>
@@ -75,7 +97,7 @@ const Home = () => {
               Sign In
             </Link>
           </div>
-        </div>
+        </motion.div>
       </header>
 
       {/* Features Showcase */}
@@ -88,22 +110,36 @@ const Home = () => {
             </p>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '32px' }}>
+          <motion.div 
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-50px" }}
+            variants={{
+              hidden: { opacity: 0 },
+              visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
+            }}
+            style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '32px' }}
+          >
             {features.map((pkg, idx) => (
-              <div key={idx} style={{ background: 'var(--bg-base)', border: '1px solid var(--border-subtle)', borderRadius: '16px', padding: '32px 24px', transition: 'all 0.3s ease', cursor: 'default' }} 
-                   onMouseOver={(e) => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = 'var(--shadow-lg)'; }}
-                   onMouseOut={(e) => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none'; }}
+              <motion.div 
+                key={idx} 
+                variants={{
+                  hidden: { opacity: 0, y: 30 },
+                  visible: { opacity: 1, y: 0, transition: { type: "spring", damping: 20, stiffness: 100 } }
+                }}
+                whileHover={{ y: -6, boxShadow: 'var(--shadow-lg)' }}
+                style={{ background: 'var(--bg-base)', border: '1px solid var(--border-subtle)', borderRadius: '16px', padding: '32px 24px', cursor: 'default' }} 
               >
                 <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'var(--bg-surface-hover)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '20px' }}>
                   {pkg.icon}
                 </div>
-                <h3 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '12px' }}>{pkg.title}</h3>
+                <h3 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '12px', fontFamily: 'var(--font-display)' }}>{pkg.title}</h3>
                 <p style={{ fontSize: '14px', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
                   {pkg.description}
                 </p>
-              </div>
+              </motion.div>
             ))}
-          </div>
+          </motion.div>
         </div>
       </section>
 

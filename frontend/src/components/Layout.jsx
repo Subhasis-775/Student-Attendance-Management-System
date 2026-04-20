@@ -2,6 +2,7 @@ import React from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { LogOut, Search, Bell, Blocks, PanelLeftClose, Menu, X, User as UserIcon, Moon, Sun } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const Layout = ({ children, navItems, pageTitle, onSearch, notifications }) => {
   const { user, logout } = useAuth();
@@ -53,12 +54,19 @@ const Layout = ({ children, navItems, pageTitle, onSearch, notifications }) => {
   return (
     <div className="app-container">
       {/* Mobile Overlay */}
-      {sidebarOpen && (
-        <div
-          className="sidebar-overlay"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
+      <AnimatePresence>
+        {sidebarOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="sidebar-overlay"
+            style={{ display: 'block' }} // override css display:none
+            onClick={() => setSidebarOpen(false)}
+          />
+        )}
+      </AnimatePresence>
 
       {/* Sidebar */}
       <aside className={`sidebar ${sidebarOpen ? 'sidebar-open' : ''}`}>
@@ -68,13 +76,14 @@ const Layout = ({ children, navItems, pageTitle, onSearch, notifications }) => {
             AttendEase
           </div>
           {/* Close button visible only on mobile */}
-          <button
+          <motion.button
+            whileTap={{ scale: 0.9 }}
             className="btn-icon sidebar-close-btn"
             onClick={() => setSidebarOpen(false)}
             aria-label="Close sidebar"
           >
             <X size={20} />
-          </button>
+          </motion.button>
         </div>
 
         <div className="sidebar-content">
@@ -107,9 +116,9 @@ const Layout = ({ children, navItems, pageTitle, onSearch, notifications }) => {
                   <span style={{ fontSize: '11px', color: 'var(--text-secondary)', textTransform: 'capitalize' }}>{user?.role}</span>
                 </div>
              </div>
-             <button onClick={() => { logout(); navigate('/login'); }} className="btn-icon" title="Logout">
+             <motion.button whileTap={{ scale: 0.9 }} onClick={() => { logout(); navigate('/login'); }} className="btn-icon" title="Logout">
                <LogOut size={16} />
-             </button>
+             </motion.button>
           </div>
         </div>
       </aside>
@@ -120,16 +129,17 @@ const Layout = ({ children, navItems, pageTitle, onSearch, notifications }) => {
         <header className="topbar">
           <div className="topbar-left">
             {/* Hamburger menu for mobile */}
-            <button
+            <motion.button
+              whileTap={{ scale: 0.9 }}
               className="btn-icon mobile-menu-btn"
               onClick={() => setSidebarOpen(true)}
               aria-label="Open menu"
             >
               <Menu size={20} />
-            </button>
-            <button className="btn-icon desktop-sidebar-btn">
+            </motion.button>
+            <motion.button whileTap={{ scale: 0.9 }} className="btn-icon desktop-sidebar-btn">
               <PanelLeftClose size={18} />
-            </button>
+            </motion.button>
             <div className="breadcrumb">
               <span className="breadcrumb-prefix">AttendEase</span>
               <span style={{ margin: '0 8px', color: 'var(--text-muted)' }}>/</span>
@@ -152,21 +162,27 @@ const Layout = ({ children, navItems, pageTitle, onSearch, notifications }) => {
             )}
             
             {/* Theme Toggle */}
-            <button className="btn-icon" onClick={toggleTheme} aria-label="Toggle theme">
+            <motion.button whileTap={{ scale: 0.9 }} className="btn-icon" onClick={toggleTheme} aria-label="Toggle theme">
               {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
-            </button>
+            </motion.button>
 
             {/* Notification Bell Dropdown */}
             <div className="notif-dropdown" style={{ position: 'relative' }}>
-              <button className="btn-icon" onClick={() => setShowNotifications(!showNotifications)}>
+              <motion.button whileTap={{ scale: 0.9 }} className="btn-icon" onClick={() => setShowNotifications(!showNotifications)}>
                 <Bell size={18} />
                 {notifications && notifications.length > 0 && (
                   <span style={{ position: 'absolute', top: '4px', right: '4px', width: '6px', height: '6px', backgroundColor: 'var(--red-500)', borderRadius: '50%' }}></span>
                 )}
-              </button>
+              </motion.button>
               
+              <AnimatePresence>
               {showNotifications && (
-                <div className="notif-panel">
+                <motion.div 
+                  initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                  className="notif-panel"
+                >
                   <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '12px', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '8px' }}>
                     Alerts & Notifications
                   </div>
@@ -182,8 +198,9 @@ const Layout = ({ children, navItems, pageTitle, onSearch, notifications }) => {
                       ))}
                     </div>
                   )}
-                </div>
+                </motion.div>
               )}
+              </AnimatePresence>
             </div>
           </div>
         </header>
