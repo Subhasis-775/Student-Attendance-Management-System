@@ -3,7 +3,7 @@ import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import Layout from '../components/Layout';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
-import { LayoutDashboard, BookOpen, GraduationCap, Clock, CheckCircle2, XCircle, Calendar } from 'lucide-react';
+import { LayoutDashboard, BookOpen, GraduationCap, Clock, CheckCircle2, XCircle, Calendar, User } from 'lucide-react';
 
 const StudentDashboard = () => {
   const [stats, setStats] = useState([]);
@@ -15,6 +15,7 @@ const StudentDashboard = () => {
     { path: '/student', label: 'Overview', icon: <LayoutDashboard /> },
     { path: '/student/subjects', label: 'My Subjects', icon: <BookOpen /> },
     { path: '/student/leaves', label: 'Leave Requests', icon: <Calendar /> },
+    { path: '/profile', label: 'Profile', icon: <User /> },
   ];
 
   useEffect(() => {

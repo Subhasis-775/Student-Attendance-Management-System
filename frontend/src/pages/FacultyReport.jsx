@@ -3,7 +3,7 @@ import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import Layout from '../components/Layout';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, ReferenceLine } from 'recharts';
-import { PenSquare, FileBarChart, Download, Users, AlertCircle, FileText } from 'lucide-react';
+import { PenSquare, FileBarChart, Download, Users, AlertCircle, FileText, User } from 'lucide-react';
 
 const FacultyReport = () => {
   const [courses, setCourses] = useState([]);
@@ -16,6 +16,7 @@ const FacultyReport = () => {
     { path: '/faculty', label: 'Mark Attendance', icon: <PenSquare /> },
     { path: '/faculty/report', label: 'Attendance Report', icon: <FileBarChart /> },
     { path: '/faculty/leaves', label: 'Leave Approvals', icon: <FileText /> },
+    { path: '/profile', label: 'Profile', icon: <User /> },
   ];
 
   useEffect(() => {
@@ -104,7 +105,7 @@ const FacultyReport = () => {
       <div className="page-subtitle">View aggregate attendance metrics and identify students at risk.</div>
 
       <div className="card mb-6" style={{ padding: '20px' }}>
-        <div className="flex-between">
+        <div className="report-controls flex-between">
           <div className="flex-start">
             <select className="input-sys" style={{ width: '280px' }} value={selectedCourse} onChange={e => setSelectedCourse(e.target.value)}>
               <option value="">Select a course to view report...</option>

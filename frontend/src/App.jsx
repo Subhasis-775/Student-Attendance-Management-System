@@ -9,6 +9,7 @@ import FacultyReport from './pages/FacultyReport';
 import FacultyLeave from './pages/FacultyLeave';
 import StudentDashboard from './pages/StudentDashboard';
 import StudentLeave from './pages/StudentLeave';
+import Profile from './pages/Profile';
 
 const PrivateRoute = ({ children, role }) => {
   const { user, loading } = useAuth();
@@ -41,6 +42,8 @@ const App = () => {
         <Route path="/student" element={<PrivateRoute role="student"><StudentDashboard /></PrivateRoute>} />
         <Route path="/student/leaves" element={<PrivateRoute role="student"><StudentLeave /></PrivateRoute>} />
         <Route path="/student/subjects" element={<PrivateRoute role="student"><StudentDashboard /></PrivateRoute>} />
+
+        <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
 
         <Route path="/" element={
           user ? (

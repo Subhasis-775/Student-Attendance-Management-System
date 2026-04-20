@@ -1,7 +1,7 @@
 import React from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { LogOut, Search, Bell, Blocks, PanelLeftClose, ChevronDown, User as UserIcon } from 'lucide-react';
+import { LogOut, Search, Bell, Blocks, PanelLeftClose, Menu, X, User as UserIcon } from 'lucide-react';
 
 const Layout = ({ children, navItems, pageTitle, onSearch, notifications }) => {
   const { user, logout } = useAuth();
@@ -11,21 +11,56 @@ const Layout = ({ children, navItems, pageTitle, onSearch, notifications }) => {
   const initials = user?.name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
 
   const [showNotifications, setShowNotifications] = React.useState(false);
+  const [sidebarOpen, setSidebarOpen] = React.useState(false);
+
   const getPageTitle = () => {
     if (pageTitle) return pageTitle;
     const item = navItems.find(i => location.pathname === i.path || (i.path !== '/admin' && i.path !== '/faculty' && i.path !== '/student' && location.pathname.startsWith(i.path)));
     return item ? item.label : 'Overview';
   };
 
+  // Close sidebar when navigating on mobile
+  const handleNavClick = (path) => {
+    navigate(path);
+    setSidebarOpen(false);
+  };
+
+  // Close notifications when clicking outside
+  React.useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (showNotifications && !e.target.closest('.notif-dropdown')) {
+        setShowNotifications(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showNotifications]);
+
   return (
     <div className="app-container">
+      {/* Mobile Overlay */}
+      {sidebarOpen && (
+        <div
+          className="sidebar-overlay"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
-      <aside className="sidebar">
+      <aside className={`sidebar ${sidebarOpen ? 'sidebar-open' : ''}`}>
         <div className="sidebar-header">
           <div className="brand-title">
             <Blocks className="brand-icon" />
             AttendEase
           </div>
+          {/* Close button visible only on mobile */}
+          <button
+            className="btn-icon sidebar-close-btn"
+            onClick={() => setSidebarOpen(false)}
+            aria-label="Close sidebar"
+          >
+            <X size={20} />
+          </button>
         </div>
 
         <div className="sidebar-content">
@@ -40,7 +75,7 @@ const Layout = ({ children, navItems, pageTitle, onSearch, notifications }) => {
               <div
                 key={item.path}
                 className={`nav-item ${isActive ? 'active' : ''}`}
-                onClick={() => navigate(item.path)}
+                onClick={() => handleNavClick(item.path)}
               >
                 {item.icon}
                 {item.label}
@@ -70,9 +105,19 @@ const Layout = ({ children, navItems, pageTitle, onSearch, notifications }) => {
         {/* Topbar */}
         <header className="topbar">
           <div className="topbar-left">
-            <button className="btn-icon"><PanelLeftClose size={18} /></button>
+            {/* Hamburger menu for mobile */}
+            <button
+              className="btn-icon mobile-menu-btn"
+              onClick={() => setSidebarOpen(true)}
+              aria-label="Open menu"
+            >
+              <Menu size={20} />
+            </button>
+            <button className="btn-icon desktop-sidebar-btn">
+              <PanelLeftClose size={18} />
+            </button>
             <div className="breadcrumb">
-              <span style={{ color: 'var(--gray-500)' }}>AttendEase</span>
+              <span className="breadcrumb-prefix">AttendEase</span>
               <span style={{ margin: '0 8px', color: 'var(--gray-300)' }}>/</span>
               <span>{getPageTitle()}</span>
             </div>
@@ -81,8 +126,8 @@ const Layout = ({ children, navItems, pageTitle, onSearch, notifications }) => {
           <div className="topbar-right">
             {/* Context-aware Search */}
             {onSearch && (
-              <div className="input-sys" style={{ width: '240px', height: '32px', borderRadius: '16px', backgroundColor: 'var(--gray-100)', border: 'none' }}>
-                <Search size={14} style={{ color: 'var(--gray-400)', marginRight: '8px' }} />
+              <div className="topbar-search input-sys">
+                <Search size={14} style={{ color: 'var(--gray-400)', marginRight: '8px', flexShrink: 0 }} />
                 <input 
                   type="text" 
                   placeholder="Search subjects..." 
@@ -93,7 +138,7 @@ const Layout = ({ children, navItems, pageTitle, onSearch, notifications }) => {
             )}
             
             {/* Notification Bell Dropdown */}
-            <div style={{ position: 'relative' }}>
+            <div className="notif-dropdown" style={{ position: 'relative' }}>
               <button className="btn-icon" onClick={() => setShowNotifications(!showNotifications)}>
                 <Bell size={18} />
                 {notifications && notifications.length > 0 && (
@@ -102,7 +147,7 @@ const Layout = ({ children, navItems, pageTitle, onSearch, notifications }) => {
               </button>
               
               {showNotifications && (
-                <div style={{ position: 'absolute', top: '100%', right: '0', marginTop: '8px', width: '320px', backgroundColor: '#fff', border: '1px solid var(--gray-200)', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-lg)', zIndex: 50, padding: '16px' }}>
+                <div className="notif-panel">
                   <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--gray-900)', marginBottom: '12px', borderBottom: '1px solid var(--gray-100)', paddingBottom: '8px' }}>
                     Alerts & Notifications
                   </div>

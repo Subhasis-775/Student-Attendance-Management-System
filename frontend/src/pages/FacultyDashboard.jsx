@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import Layout from '../components/Layout';
-import { PenSquare, FileBarChart, CheckCircle2, AlertCircle, Calendar, FileText } from 'lucide-react';
+import { PenSquare, FileBarChart, CheckCircle2, AlertCircle, Calendar, FileText, User } from 'lucide-react';
 
 const FacultyDashboard = () => {
   const [courses, setCourses] = useState([]);
@@ -19,6 +19,7 @@ const FacultyDashboard = () => {
     { path: '/faculty', label: 'Mark Attendance', icon: <PenSquare /> },
     { path: '/faculty/report', label: 'Attendance Report', icon: <FileBarChart /> },
     { path: '/faculty/leaves', label: 'Leave Approvals', icon: <FileText /> },
+    { path: '/profile', label: 'Profile', icon: <User /> },
   ];
 
   useEffect(() => {
@@ -124,7 +125,7 @@ const FacultyDashboard = () => {
       ) : (
         <>
           <div className="card mb-6" style={{ padding: '20px' }}>
-            <div className="flex-between">
+            <div className="faculty-controls flex-between">
               <div className="flex-start">
                 <select className="input-sys" style={{ width: '260px' }} value={selectedCourse} onChange={e => setSelectedCourse(e.target.value)}>
                   <option value="">Select an assigned course...</option>
@@ -202,7 +203,7 @@ const FacultyDashboard = () => {
                 </div>
               </div>
               
-              <div className="flex-between">
+              <div className="faculty-action-bar flex-between">
                 <span style={{ fontSize: '12px', color: 'var(--gray-500)' }}>Please review all entries before saving.</span>
                 <button className="btn btn-primary" style={{ padding: '0 24px' }} type="submit" disabled={loading}>
                   {loading ? 'Saving Records...' : existingRecords ? 'Update Final Record' : 'Save Attendance Record'}

@@ -72,7 +72,7 @@ const Register = () => {
               <input className="input-sys" type="text" value={name} onChange={e => setName(e.target.value)} required placeholder="John Doe" />
             </div>
             
-            <div style={{ display: 'flex', gap: '16px' }}>
+            <div className="register-row" style={{ display: 'flex', gap: '16px' }}>
               <div className="form-group" style={{ flex: 1 }}>
                 <label className="form-label">Email</label>
                 <input className="input-sys" type="email" value={email} onChange={e => setEmail(e.target.value)} required placeholder="you@university.edu" />
@@ -94,7 +94,7 @@ const Register = () => {
               <input className="input-sys" type="text" value={registrationNumber} onChange={e => setRegistrationNumber(e.target.value)} placeholder="e.g. 23110318" />
             </div>
 
-            <div style={{ display: 'flex', gap: '16px' }}>
+            <div className="register-row" style={{ display: 'flex', gap: '16px' }}>
               <div className="form-group" style={{ flex: 1 }}>
                 <label className="form-label">Password</label>
                 <input className="input-sys" type="password" value={password} onChange={e => setPassword(e.target.value)} required placeholder="Min 6 characters" />

@@ -32,13 +32,26 @@ const seedData = async () => {
     const fac9 = await User.create({ name: 'Prof. Deepak Mohan', email: 'deepak@university.edu', registrationNumber: 'FAC009', password: 'password123', role: 'faculty' });
 
     // Students
-    const s1 = await User.create({ name: 'Subhasis Rout', email: 'subhasis@university.edu', registrationNumber: '23110318', password: 'password123', role: 'student' });
-    const s2 = await User.create({ name: 'Rahul Kumar', email: 'rahul@university.edu', registrationNumber: '23110319', password: 'password123', role: 'student' });
-    const s3 = await User.create({ name: 'Priya Singh', email: 'priya@university.edu', registrationNumber: '23110320', password: 'password123', role: 'student' });
-    const s4 = await User.create({ name: 'Amit Mohanty', email: 'amit@university.edu', registrationNumber: '23110321', password: 'password123', role: 'student' });
-    const s5 = await User.create({ name: 'Sneha Panda', email: 'sneha@university.edu', registrationNumber: '23110322', password: 'password123', role: 'student' });
+    const rawStudents = [
+      "2211100196 BHADRESWAR MUNDARY", "23110250 ABHINANDAN SAHU", "23110251 ABHISHEK MOHANTY", "23110252 ABHISHEK PATI", "23110253 ABU NOOR AL SABA", "23110255 ADITYA PARAMANIK", "23110256 ADYASHA DAS", "23110258 ALIVA BHUYAN", "23110259 ANSU RANIT KERKETTA", "23110260 ASHUTOSH PADHY", "23110261 ASIT SAHOO", "23110262 AYUSH KUMAR BARIK", "23110264 DEBASIS PANDA", "23110265 DEEPESH KUMAR MISHRA", "23110266 DIBYA DISHA SAHOO", "23110268 DINESH CHANDRA MOHANTY", "23110269 DIVYAJYOTI GHADAI", "23110270 GOURI BASKEY", "23110271 GYANA PRAKASH DAS", "23110272 HEMANT XALXO", "23110273 IPSITA MAHAPATRO", "23110274 JASWANT DAKUA", "23110275 K OM SENAPATI", "23110276 KARANAM PRASANT", "23110277 KETAN MOHANTY", "23110278 KHIROD BEHERA", "23110279 KHUSHI MANDAL", "23110280 KRITIKA TANDY", "23110281 LIPSITA MAHAPATRO", "23110282 MANASI MAHARANA", "23110283 MANOJ KUMAR PANIGRAHI", "23110284 MOUSUMI NAIK", "23110285 OM SATYAM DEY", "23110286 OMM PRAKASH SAHOO", "23110287 OMMKAR PATTNAIK", "23110288 P MOHAN REDDY", "23110289 PRABHUPRATIK PATTANAIK", "23110290 PRASANTA MOHANTY", "23110291 PRATEEK MISHRA", "23110292 PRATIKSHYA PRIYADARSHINI", "23110293 PRIYADARSHINI SAHANI", "23110294 PRIYANSHU HEMBRAM", "23110295 PRUTHWIRAJ SANIBIGRAHA", "23110296 R.H.ARIJIT", "23110297 RAKESH SAHU", "23110298 SAHIL TRIPATHY", "23110299 SALONI MOHAPATRA", "23110300 SAMIKHYA PANIGRAHI", "23110302 SANTOSH SAMAL", "23110303 SASANK SEKHAR BISOYI", "23110304 SATYA SARATHI DAS", "23110305 SATYAJIT DAS", "23110306 SATYAJIT SAHOO", "23110307 SATYAPRAKASH NAIK", "23110308 SHIVA PRASAD SAHOO", "23110309 SHUBHRANSHU SEKHAR DALAI", "23110310 SHYAM SUNDAR SOREN", "23110311 SIMRAN PALAI", "23110312 SOMEN SUBHADIP ROUT", "23110313 SOUMYA SAFALLYA SAHOO", "23110314 SOUMYA SAGAR NAYAK", "23110315 SOVAN KUMAR MOHAPATRA", "23110316 SRITOM MOHANTY", "23110317 SUBASISH JENA", "23110318 SUBHASIS ROUT", "23110319 SUBHASISH BEHERA", "23110320 SUJALL MOHAPATRA", "23110321 SUMAN SUBHRA CHANDAN SEN", "23110322 SURYA NARAYAN DASH", "23110323 SUSHREE SANGITA SAHOO", "23110325 UPENDRA MURMU", "23110326 VIBHA MISHRA", "23110327 VIVEKANANDA GURU", "23110395 ADARSH SWAIN", "23110462 PARITOSH RATH", "23110581 PRAYAS KUMAR NAYAK", "23110701 SWAYAM SUBHANKAR SAHOO", "23110713 ADYASHA MISHRA", "23110791 PRIYANKA SWAIN", "24120021 ABHIJIT MOHANTY", "24120022 AMLAN BAIBHAV DASH", "24120023 ASHUTOSH MOHAPATRA", "24120024 BHANU PRATAP SINGH", "24120025 G.KHETRABASI REDDY", "24120026 KAMALAKANTA PARIDA", "24120027 MIR ENAYATULLA QUADRI", "24120028 PURNA CHANDRA JENA", "24120029 SANDEEP EKKA", "24120030 SUBHASHREE DAS", "24120031 SUMEET HOTA"
+    ];
 
-    const allStudents = [s1._id, s2._id, s3._id, s4._id, s5._id];
+    const studentData = rawStudents.map(str => {
+      const parts = str.split(' ');
+      const regObj = parts[0];
+      const nameObj = parts.slice(1).join(' ');
+      return {
+        name: nameObj,
+        email: `${regObj}@university.edu`,
+        registrationNumber: regObj,
+        password: 'password123',
+        role: 'student'
+      };
+    });
+
+    console.log(`Generating ${studentData.length} students natively...`);
+    const createdStudents = await Promise.all(studentData.map(s => User.create(s)));
+    const allStudents = createdStudents.map(s => s._id);
 
     // 6 Theory subjects (30 classes each) + 3 Lab subjects (10 classes each)
     const courses = await Course.insertMany([

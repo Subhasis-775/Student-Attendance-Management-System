@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import Layout from '../components/Layout';
-import { LayoutDashboard, BookOpen, Clock, AlertCircle, FilePlus, Calendar } from 'lucide-react';
+import { LayoutDashboard, BookOpen, Clock, AlertCircle, FilePlus, Calendar, User } from 'lucide-react';
 
 const StudentLeave = () => {
   const { user } = useAuth();
@@ -18,6 +18,7 @@ const StudentLeave = () => {
     { path: '/student', label: 'Overview', icon: <LayoutDashboard /> },
     { path: '/student/subjects', label: 'My Subjects', icon: <BookOpen /> },
     { path: '/student/leaves', label: 'Leave Requests', icon: <Calendar /> },
+    { path: '/profile', label: 'Profile', icon: <User /> },
   ];
 
   const fetchData = async () => {
@@ -72,7 +73,7 @@ const StudentLeave = () => {
         </div>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1.5fr)', gap: '24px' }}>
+      <div className="leave-layout-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1.5fr)', gap: '24px' }}>
         
         {/* New Leave Form */}
         <div className="card mb-6" style={{ height: 'fit-content' }}>

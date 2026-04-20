@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import Layout from '../components/Layout';
-import { PenSquare, FileBarChart, CheckCircle2, AlertCircle, XCircle, FileText, Inbox } from 'lucide-react';
+import { PenSquare, FileBarChart, CheckCircle2, AlertCircle, XCircle, FileText, Inbox, User } from 'lucide-react';
 
 const FacultyLeave = () => {
   const { user } = useAuth();
@@ -16,6 +16,7 @@ const FacultyLeave = () => {
     { path: '/faculty', label: 'Mark Attendance', icon: <PenSquare /> },
     { path: '/faculty/report', label: 'Attendance Report', icon: <FileBarChart /> },
     { path: '/faculty/leaves', label: 'Leave Approvals', icon: <FileText /> },
+    { path: '/profile', label: 'Profile', icon: <User /> },
   ];
 
   const fetchLeaves = async () => {

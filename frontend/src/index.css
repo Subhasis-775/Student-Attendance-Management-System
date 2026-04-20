@@ -109,8 +109,10 @@ ul, ol { list-style: none; }
   height: var(--topbar-h);
   display: flex;
   align-items: center;
+  justify-content: space-between;
   padding: 0 20px;
   border-bottom: 1px solid transparent; /* matches layout rhythm */
+  flex-shrink: 0;
 }
 
 .brand-title {
@@ -698,3 +700,431 @@ ul, ol { list-style: none; }
 .mb-4 { margin-bottom: 16px; }
 .mb-6 { margin-bottom: 24px; }
 .ml-auto { margin-left: auto; }
+
+/* ===================== MOBILE SIDEBAR DRAWER ===================== */
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(2px);
+  z-index: 45;
+  animation: fadeIn 0.2s ease;
+}
+
+.sidebar-close-btn {
+  display: none !important;
+}
+
+.mobile-menu-btn {
+  display: none !important;
+}
+
+.desktop-sidebar-btn {
+  display: inline-flex;
+}
+
+.breadcrumb-prefix {
+  color: var(--gray-500);
+}
+
+/* Topbar search default */
+.topbar-search {
+  width: 240px;
+  height: 32px;
+  border-radius: 16px;
+  background-color: var(--gray-100);
+  border: none;
+}
+
+/* Notification panel default */
+.notif-panel {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 8px;
+  width: 320px;
+  background-color: #fff;
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  z-index: 50;
+  padding: 16px;
+}
+
+/* ===================== ANIMATIONS ===================== */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideInLeft {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
+}
+
+/* ===================== RESPONSIVE — TABLET (≤ 900px) ===================== */
+@media (max-width: 900px) {
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    transform: translateX(-100%);
+    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 50;
+    box-shadow: none;
+  }
+
+  .sidebar.sidebar-open {
+    transform: translateX(0);
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.1);
+  }
+
+  .sidebar-overlay {
+    display: block;
+  }
+
+  .sidebar-close-btn {
+    display: inline-flex !important;
+  }
+
+  .mobile-menu-btn {
+    display: inline-flex !important;
+  }
+
+  .desktop-sidebar-btn {
+    display: none !important;
+  }
+
+  .content-frame {
+    padding: 24px;
+  }
+
+  .kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+
+  .page-title {
+    font-size: 20px;
+    margin-bottom: 4px;
+  }
+
+  .page-subtitle {
+    font-size: 13px;
+    margin-bottom: 20px;
+  }
+
+  .topbar-search {
+    width: 180px;
+  }
+}
+
+/* ===================== RESPONSIVE — MOBILE (≤ 640px) ===================== */
+@media (max-width: 640px) {
+  .content-frame {
+    padding: 16px;
+  }
+
+  .topbar {
+    padding: 0 16px;
+  }
+
+  /* Typography scaling */
+  .page-title {
+    font-size: 18px;
+  }
+
+  .page-subtitle {
+    font-size: 12px;
+    margin-bottom: 16px;
+  }
+
+  .section-title {
+    font-size: 14px;
+  }
+
+  /* KPI grid stacks to 2 cols then 1 */
+  .kpi-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+
+  .kpi-card {
+    padding: 14px;
+  }
+
+  .kpi-value {
+    font-size: 22px;
+  }
+
+  .kpi-title {
+    font-size: 11px;
+    margin-bottom: 8px;
+  }
+
+  .kpi-meta {
+    font-size: 11px;
+  }
+
+  /* Hide search on very small screens */
+  .topbar-search {
+    display: none;
+  }
+
+  /* Breadcrumb: hide prefix */
+  .breadcrumb-prefix {
+    display: none;
+  }
+
+  .breadcrumb-prefix + span {
+    display: none;
+  }
+
+  /* Notification panel full-width on mobile */
+  .notif-panel {
+    position: fixed;
+    top: var(--topbar-h);
+    left: 8px;
+    right: 8px;
+    width: auto;
+    max-height: 60vh;
+    overflow-y: auto;
+  }
+
+  /* Buttons touch-friendly */
+  .btn {
+    height: 40px;
+    padding: 0 16px;
+    font-size: 13px;
+  }
+
+  .btn-icon {
+    width: 40px;
+    height: 40px;
+  }
+
+  /* Forms touch-friendly */
+  .input-sys {
+    height: 42px;
+    font-size: 15px;
+    padding: 0 14px;
+  }
+
+  .form-label {
+    font-size: 12px;
+    margin-bottom: 4px;
+  }
+
+  /* Cards inner spacing */
+  .card .section-head {
+    padding: 14px 16px 0 !important;
+  }
+
+  /* Table adjustments */
+  .table-clean th {
+    padding: 10px 12px;
+    font-size: 10px;
+  }
+
+  .table-clean td {
+    padding: 10px 12px;
+    font-size: 12px;
+  }
+
+  /* Flex-between stacks on mobile */
+  .flex-between {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .flex-start {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  /* Toggle buttons touch-friendly */
+  .toggle-btn {
+    padding: 6px 10px;
+    font-size: 11px;
+  }
+
+  /* Alert toast mobile */
+  .alert-toast {
+    font-size: 12px;
+    padding: 10px 14px;
+    margin-bottom: 16px;
+  }
+
+  /* Badge sizes */ 
+  .badge {
+    font-size: 10px;
+    padding: 3px 6px;
+  }
+
+  /* Auth layout mobile */
+  .auth-panel {
+    padding: 24px;
+  }
+
+  .auth-form-container {
+    max-width: 100% !important;
+  }
+
+  .auth-header h1 {
+    font-size: 20px;
+  }
+
+  .auth-header p {
+    font-size: 13px;
+    margin-bottom: 24px;
+  }
+}
+
+/* ===================== RESPONSIVE — SMALL MOBILE (≤ 480px) ===================== */
+@media (max-width: 480px) {
+  .kpi-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .kpi-card {
+    padding: 12px;
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .kpi-card .kpi-title {
+    margin-bottom: 0;
+  }
+
+  .kpi-value {
+    font-size: 20px;
+  }
+}
+
+/* ===================== PAGE-SPECIFIC RESPONSIVE ===================== */
+
+/* Admin Tabs — scrollable on mobile */
+@media (max-width: 640px) {
+  .admin-tabs {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    gap: 0 !important;
+  }
+
+  .admin-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .admin-tabs button {
+    white-space: nowrap;
+    flex-shrink: 0;
+    padding: 8px 12px !important;
+    font-size: 12px !important;
+  }
+}
+
+/* Admin form grids — stack on mobile */
+@media (max-width: 640px) {
+  .form-grid-2,
+  .form-grid-3 {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+}
+
+/* Admin overview side-by-side tables — stack on mobile */
+@media (max-width: 768px) {
+  .admin-overview-grid {
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+  }
+}
+
+/* Student Leave grid — stack on mobile */
+@media (max-width: 768px) {
+  .leave-layout-grid {
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+  }
+}
+
+/* Faculty controls — stack on mobile */
+@media (max-width: 640px) {
+  .faculty-controls {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 10px !important;
+  }
+
+  .faculty-controls .input-sys {
+    width: 100% !important;
+  }
+
+  .faculty-controls .flex-start {
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  .faculty-controls .flex-start .btn {
+    flex: 1;
+  }
+
+  .faculty-action-bar {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 8px !important;
+  }
+
+  .faculty-action-bar .btn {
+    width: 100%;
+  }
+}
+
+/* Faculty Report controls — stack on mobile */
+@media (max-width: 640px) {
+  .report-controls {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 10px !important;
+  }
+
+  .report-controls .input-sys {
+    width: 100% !important;
+  }
+
+  .report-controls .flex-start {
+    flex-wrap: wrap;
+  }
+}
+
+/* Enroll form action buttons — stack on small screens */
+@media (max-width: 640px) {
+  .enroll-actions {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+
+  .enroll-actions .btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* Register form flex rows — stack on mobile */
+@media (max-width: 640px) {
+  .register-row {
+    flex-direction: column !important;
+    gap: 0 !important;
+  }
+
+  .register-row .form-group {
+    width: 100% !important;
+    flex: unset !important;
+  }
+}

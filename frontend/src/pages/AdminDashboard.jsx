@@ -2,33 +2,39 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import Layout from '../components/Layout';
-import { LayoutDashboard, Users as UsersIcon, BookOpen, UserPlus, FilePlus, Link2, CheckCircle2, AlertCircle } from 'lucide-react';
+import { LayoutDashboard, Users as UsersIcon, BookOpen, UserPlus, FilePlus, Link2, CheckCircle2, AlertCircle, User } from 'lucide-react';
 
 const AdminDashboard = () => {
   const { user } = useAuth();
   const [users, setUsers] = useState([]);
   const [courses, setCourses] = useState([]);
+  const [analytics, setAnalytics] = useState({ lowestCourse: null, atRiskStudents: [] });
   const [tab, setTab] = useState('overview');
   const [newUser, setNewUser] = useState({ name: '', email: '', password: 'password123', role: 'student', registrationNumber: '' });
   const [newCourse, setNewCourse] = useState({ courseCode: '', name: '', faculty: '', type: 'theory', maxClasses: '' });
   const [enroll, setEnroll] = useState({ studentId: '', courseId: '' });
   const [msg, setMsg] = useState({ text: '', type: '' });
+  const [studentSearch, setStudentSearch] = useState('');
+  const [enrollSearch, setEnrollSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const headers = { Authorization: `Bearer ${user.token}` };
 
   const navItems = [
     { path: '/admin', label: 'Administration', icon: <LayoutDashboard /> },
+    { path: '/profile', label: 'Profile', icon: <User /> },
   ];
 
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [u, c] = await Promise.all([
+      const [u, c, a] = await Promise.all([
         axios.get('http://localhost:5000/api/admin/users', { headers }),
         axios.get('http://localhost:5000/api/admin/courses', { headers }),
+        axios.get('http://localhost:5000/api/admin/analytics', { headers }),
       ]);
       setUsers(u.data);
       setCourses(c.data);
+      setAnalytics(a.data);
     } catch (err) { console.error(err); }
     setLoading(false);
   };
@@ -121,6 +127,7 @@ const AdminDashboard = () => {
           <div className="skeleton skeleton-card"></div>
           <div className="skeleton skeleton-card"></div>
           <div className="skeleton skeleton-card"></div>
+          <div className="skeleton skeleton-card"></div>
         </div>
       ) : (
         <div className="kpi-grid">
@@ -139,11 +146,18 @@ const AdminDashboard = () => {
             <div className="kpi-value">{courses.length}</div>
             <div className="kpi-meta" style={{ color: 'var(--primary-600)' }}>Term registry</div>
           </div>
+          <div className="kpi-card">
+            <div className="kpi-title">Lowest Attendance Crs <AlertCircle size={16} className="kpi-icon" style={{ color: 'var(--red-600)' }} /></div>
+            <div className="kpi-value">{analytics?.lowestCourse ? `${analytics.lowestCourse.attendancePercentage.toFixed(1)}%` : 'N/A'}</div>
+            <div className="kpi-meta" style={{ color: 'var(--red-600)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {analytics?.lowestCourse ? `${analytics.lowestCourse.courseData?.courseCode} - ${analytics.lowestCourse.courseData?.name}` : 'Not enough data'}
+            </div>
+          </div>
         </div>
       )}
 
       {/* Tabs */}
-      <div style={{ display: 'flex', gap: '8px', borderBottom: '1px solid var(--gray-200)', marginBottom: '32px' }}>
+      <div className="admin-tabs" style={{ display: 'flex', gap: '8px', borderBottom: '1px solid var(--gray-200)', marginBottom: '32px' }}>
         <TabButton id="overview" label="Registry Overview" icon={<LayoutDashboard size={14} />} />
         <TabButton id="add-user" label="Provision User" icon={<UserPlus size={14} />} />
         <TabButton id="bulk-upload" label="Bulk Provision" icon={<FilePlus size={14} />} />
@@ -160,7 +174,7 @@ const AdminDashboard = () => {
             </div>
             <div style={{ padding: '24px' }}>
               <form onSubmit={handleCreateUser}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                <div className="form-grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                   <div className="form-group"><label className="form-label">Full Name</label><input className="input-sys" placeholder="Jane Doe" value={newUser.name} onChange={e => setNewUser({ ...newUser, name: e.target.value })} required /></div>
                   <div className="form-group"><label className="form-label">Email Address</label><input className="input-sys" type="email" placeholder="jane@university.edu" value={newUser.email} onChange={e => setNewUser({ ...newUser, email: e.target.value })} required /></div>
                   <div className="form-group"><label className="form-label">System Role</label>
@@ -195,7 +209,7 @@ const AdminDashboard = () => {
                 const formData = new FormData();
                 formData.append('file', fileInput.files[0]);
                 try {
-                  const res = await axios.post('http://localhost:5000/api/admin/users/bulk', formData, { ...headers, headers: { ...headers.headers, 'Content-Type': 'multipart/form-data' } });
+                  const res = await axios.post('http://localhost:5000/api/admin/users/bulk', formData, { headers });
                   flash(res.data.message);
                   fetchData();
                   fileInput.value = '';
@@ -204,7 +218,7 @@ const AdminDashboard = () => {
                 <div className="form-group">
                   <label className="form-label">Upload CSV File</label>
                   <p style={{ fontSize: '13px', color: 'var(--gray-500)', marginBottom: '8px' }}>
-                    CSV must include headers: <strong>name, email, role, registrationNumber</strong>. Password defaults to <i>password123</i> if not provided.
+                    CSV must include headers: <strong>name, registrationNumber</strong>. (email, role, password are optional). Email defaults to <i>registrationNumber@university.edu</i>. Role defaults to <i>student</i>. Password defaults to <i>password123</i>.
                   </p>
                   <input className="input-sys" type="file" name="csvFile" accept=".csv" required style={{ padding: '6px 12px' }} />
                 </div>
@@ -224,11 +238,11 @@ const AdminDashboard = () => {
             </div>
             <div style={{ padding: '24px' }}>
               <form onSubmit={handleCreateCourse}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '16px' }}>
+                <div className="form-grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '16px' }}>
                   <div className="form-group"><label className="form-label">Course Code</label><input className="input-sys" placeholder="e.g. CS301" value={newCourse.courseCode} onChange={e => setNewCourse({ ...newCourse, courseCode: e.target.value })} required /></div>
                   <div className="form-group"><label className="form-label">Official Course Name</label><input className="input-sys" placeholder="Advanced Database Systems" value={newCourse.name} onChange={e => setNewCourse({ ...newCourse, name: e.target.value })} required /></div>
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
+                <div className="form-grid-3" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
                   <div className="form-group"><label className="form-label">Assign Faculty</label>
                     <select className="input-sys" value={newCourse.faculty} onChange={e => setNewCourse({ ...newCourse, faculty: e.target.value })} required>
                       <option value="">Select faculty member...</option>
@@ -259,11 +273,23 @@ const AdminDashboard = () => {
             </div>
             <div style={{ padding: '24px' }}>
               <form onSubmit={handleEnroll}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                  <div className="form-group"><label className="form-label">Select Student</label>
+                <div className="form-grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                  <div className="form-group">
+                    <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span>Select Student</span>
+                      <input 
+                        type="text" 
+                        placeholder="Search student..." 
+                        style={{ width: '150px', padding: '2px 6px', fontSize: '12px', borderRadius: '4px', border: '1px solid var(--gray-300)' }} 
+                        value={enrollSearch} 
+                        onChange={(e) => setEnrollSearch(e.target.value)} 
+                      />
+                    </label>
                     <select className="input-sys" value={enroll.studentId} onChange={e => setEnroll({ ...enroll, studentId: e.target.value })} required>
                       <option value="">Select student...</option>
-                      {studentsList.map(s => <option key={s._id} value={s._id}>{s.name} • {s.registrationNumber || s.email}</option>)}
+                      {studentsList
+                        .filter(s => s.name.toLowerCase().includes(enrollSearch.toLowerCase()) || (s.registrationNumber && s.registrationNumber.toLowerCase().includes(enrollSearch.toLowerCase())))
+                        .map(s => <option key={s._id} value={s._id}>{s.name} • {s.registrationNumber || s.email}</option>)}
                     </select>
                   </div>
                   <div className="form-group"><label className="form-label">Select Target Course</label>
@@ -273,7 +299,7 @@ const AdminDashboard = () => {
                     </select>
                   </div>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '16px' }}>
+                <div className="enroll-actions" style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '16px' }}>
                   <button className="btn btn-secondary" type="button" onClick={handleEnrollAll}>Bulk Enroll in ALL Courses</button>
                   <button className="btn btn-primary" type="submit">Process Single Enrollment</button>
                 </div>
@@ -315,17 +341,27 @@ const AdminDashboard = () => {
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1.2fr)', gap: '24px' }}>
+          <div className="admin-overview-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1.2fr)', gap: '24px' }}>
             {/* Students List */}
             <div className="card">
-              <div className="section-head" style={{ padding: '20px 24px 0' }}>
+              <div className="section-head" style={{ padding: '20px 24px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span className="section-title">Student Directory</span>
+                <input 
+                  type="text" 
+                  placeholder="Search directory..." 
+                  className="input-sys" 
+                  style={{ width: '220px', padding: '6px 12px', fontSize: '13px' }}
+                  value={studentSearch} 
+                  onChange={(e) => setStudentSearch(e.target.value)} 
+                />
               </div>
               <div className="table-container" style={{ maxHeight: '400px' }}>
                 <table className="table-clean">
                   <thead><tr><th>Student</th><th>Enrollments</th></tr></thead>
                   <tbody>
-                    {studentsList.map(s => {
+                    {studentsList
+                      .filter(s => s.name.toLowerCase().includes(studentSearch.toLowerCase()) || (s.registrationNumber && s.registrationNumber.toLowerCase().includes(studentSearch.toLowerCase())))
+                      .map(s => {
                       const enrolledIn = courses.filter(c => c.students?.some(st => st._id === s._id || st === s._id));
                       return (
                         <tr key={s._id}>
@@ -373,6 +409,37 @@ const AdminDashboard = () => {
                   </tbody>
                 </table>
               </div>
+            </div>
+          </div>
+          <div className="card" style={{ marginTop: '24px', marginBottom: '24px' }}>
+            <div className="section-head" style={{ padding: '20px 24px 0' }}>
+              <span className="section-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <AlertCircle size={18} className="text-red-600" />
+                University-Wide At-Risk Students (&lt; 75% Global)
+              </span>
+            </div>
+            <div className="table-container" style={{ maxHeight: '400px' }}>
+              <table className="table-clean">
+                <thead><tr><th>Student</th><th>Email Address</th><th>Global Attendance</th><th>Classes Summary</th><th>Status</th></tr></thead>
+                <tbody>
+                  {analytics?.atRiskStudents?.length === 0 ? (
+                    <tr><td colSpan="5" style={{ textAlign: 'center', color: 'var(--gray-500)', padding: '32px' }}>No at-risk students found globally!</td></tr>
+                  ) : (
+                    analytics?.atRiskStudents?.map(s => (
+                      <tr key={s._id}>
+                        <td>
+                          <div style={{ fontWeight: 500, color: 'var(--gray-900)' }}>{s.studentData?.name}</div>
+                          <div style={{ fontSize: '12px', color: 'var(--gray-500)' }}>{s.studentData?.registrationNumber || 'No ID'}</div>
+                        </td>
+                        <td style={{ color: 'var(--gray-600)' }}>{s.studentData?.email}</td>
+                        <td style={{ fontWeight: 600, color: 'var(--red-600)' }}>{s.attendancePercentage.toFixed(1)}%</td>
+                        <td>{s.classesAttended} / {s.totalClasses} Attended</td>
+                        <td><span className="badge badge-red">At Risk</span></td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
         </>
