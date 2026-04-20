@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
-import { Blocks, ArrowRight } from 'lucide-react';
+import { Blocks, ArrowRight, Eye, EyeOff } from 'lucide-react';
 
 const Login = () => {
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
@@ -33,11 +34,11 @@ const Login = () => {
       <div className="auth-hero">
         <div className="pattern-bg"></div>
         <div style={{ position: 'relative', zIndex: 10, textAlign: 'center', maxWidth: '400px' }}>
-          <Blocks size={48} style={{ color: 'var(--primary-500)', marginBottom: '24px' }} />
-          <h2 style={{ fontSize: '32px', fontWeight: 700, color: 'var(--gray-900)', letterSpacing: '-0.03em', marginBottom: '16px' }}>
+          <Blocks size={48} style={{ color: 'var(--primary-500)', margin: '0 auto 24px' }} />
+          <h2 style={{ fontSize: '32px', fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.03em', marginBottom: '16px' }}>
             Elevate Your Academic Operations.
           </h2>
-          <p style={{ fontSize: '15px', color: 'var(--gray-600)', lineHeight: '1.6' }}>
+          <p style={{ fontSize: '15px', color: 'var(--text-secondary)', lineHeight: '1.6' }}>
             The all-in-one attendance management platform designed for modern universities. Professional, fast, and reliable.
           </p>
         </div>
@@ -75,14 +76,23 @@ const Login = () => {
                 <label className="form-label" style={{ margin: 0 }}>Password</label>
                 <a href="#" style={{ fontSize: '12px', color: 'var(--primary-600)', fontWeight: 500 }}>Forgot password?</a>
               </div>
-              <input 
-                className="input-sys" 
-                type="password" 
-                value={password}
-                onChange={(e) => setPassword(e.target.value)} 
-                required
-                placeholder="Enter your password" 
-              />
+              <div style={{ position: 'relative' }}>
+                <input 
+                  className="input-sys" 
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)} 
+                  required
+                  placeholder="Enter your password" 
+                />
+                <button 
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 0, display: 'flex' }}
+                >
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
             </div>
 
             <button 
@@ -97,8 +107,8 @@ const Login = () => {
             </button>
           </form>
 
-          <div style={{ marginTop: '32px', textAlign: 'center', fontSize: '13px', color: 'var(--gray-500)' }}>
-            Don't have an account? <Link to="/register" style={{ color: 'var(--gray-900)', fontWeight: 500 }}>Create one</Link>
+          <div style={{ marginTop: '32px', textAlign: 'center', fontSize: '13px', color: 'var(--text-secondary)' }}>
+            Don't have an account? <Link to="/register" style={{ color: 'var(--text-primary)', fontWeight: 500 }}>Create one</Link>
           </div>
         </div>
       </div>

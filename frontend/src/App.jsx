@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
+import Home from './pages/Home';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import AdminDashboard from './pages/AdminDashboard';
@@ -50,7 +51,7 @@ const App = () => {
             user.role === 'admin' ? <Navigate to="/admin" /> :
             user.role === 'faculty' ? <Navigate to="/faculty" /> :
             <Navigate to="/student" />
-          ) : <Navigate to="/login" />
+          ) : <Home />
         } />
       </Routes>
     </Router>
