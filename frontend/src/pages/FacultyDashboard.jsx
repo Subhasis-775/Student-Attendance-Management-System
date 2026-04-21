@@ -1,10 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import Layout from '../components/Layout';
-import { PenSquare, FileBarChart, CheckCircle2, AlertCircle, Calendar, FileText, User, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Search, X } from 'lucide-react';
-
-const ITEMS_PER_PAGE = 10;
+import { PenSquare, FileBarChart, CheckCircle2, AlertCircle, Calendar, FileText, User } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { SaaSTable } from '../components/SaaSTable';
 
 const FacultyDashboard = () => {
   const [courses, setCourses] = useState([]);
@@ -15,9 +15,6 @@ const FacultyDashboard = () => {
   const [message, setMessage] = useState({ text: '', type: '' });
   const [existingRecords, setExistingRecords] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(ITEMS_PER_PAGE);
   const { user } = useAuth();
   
   const navItems = [
@@ -33,7 +30,7 @@ const FacultyDashboard = () => {
         const { data } = await axios.get('http://localhost:5000/api/admin/courses', {
           headers: { Authorization: `Bearer ${user.token}` }
         });
-        const myCourses = data.filter(c => c.faculty && c.faculty._id === user._id);
+        const myCourses = data.filter(c => c.faculty && c.faculty.some(f => String(f._id) === String(user._id)));
         setCourses(myCourses);
       } catch (err) { console.error(err); }
     };
@@ -55,10 +52,6 @@ const FacultyDashboard = () => {
       setAttendanceData({});
     }
   }, [selectedCourse, date, courses]);
-
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchQuery, selectedCourse, date, itemsPerPage]);
 
   const fetchExisting = async (courseId, fallback) => {
     try {
@@ -110,26 +103,27 @@ const FacultyDashboard = () => {
   const presentCount = Object.values(attendanceData).filter(s => s === 'present').length;
   const absentCount = Object.values(attendanceData).filter(s => s === 'absent').length;
   const leaveCount = Object.values(attendanceData).filter(s => s === 'leave').length;
-  const normalizedSearch = searchQuery.trim().toLowerCase();
-  const filteredStudents = students.filter((student) => {
-    if (!normalizedSearch) return true;
-    return (
-      student.name.toLowerCase().includes(normalizedSearch) ||
-      (student.registrationNumber && student.registrationNumber.toLowerCase().includes(normalizedSearch)) ||
-      (student.email && student.email.toLowerCase().includes(normalizedSearch))
-    );
-  });
-  const totalPages = Math.ceil(filteredStudents.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const paginatedStudents = filteredStudents.slice(startIndex, startIndex + itemsPerPage);
-  const paginationStart = filteredStudents.length > 0 ? startIndex + 1 : 0;
-  const paginationEnd = Math.min(startIndex + itemsPerPage, filteredStudents.length);
 
-  useEffect(() => {
-    if (totalPages > 0 && currentPage > totalPages) {
-      setCurrentPage(totalPages);
-    }
-  }, [currentPage, totalPages]);
+  const studentColumns = useMemo(() => [
+    { id: 'index', header: '#', cell: info => <div style={{ color: 'var(--text-muted)', fontWeight: 500 }}>{info.row.index + 1}</div> },
+    { id: 'info', header: 'Student Information', accessorKey: 'name', cell: info => (
+      <div>
+        <div style={{ fontWeight: 500, color: 'var(--text-primary)' }}>{info.getValue()}</div>
+        <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '2px' }}>{info.row.original.registrationNumber || info.row.original.email}</div>
+      </div>
+    ) },
+    { id: 'status', header: 'Status Selection', cell: ({ row }) => {
+      const s = row.original;
+      const st = attendanceData[s._id] || 'absent';
+      return (
+        <div className="toggle-wrapper" onClick={e => e.stopPropagation()}>
+          <button type="button" className={`toggle-btn ${st === 'present' ? 'active-present' : ''}`} onClick={(e) => { e.preventDefault(); setStatus(s._id, 'present'); }}>Present</button>
+          <button type="button" className={`toggle-btn ${st === 'absent' ? 'active-absent' : ''}`} onClick={(e) => { e.preventDefault(); setStatus(s._id, 'absent'); }}>Absent</button>
+          <button type="button" className={`toggle-btn ${st === 'leave' ? 'active-leave' : ''}`} onClick={(e) => { e.preventDefault(); setStatus(s._id, 'leave'); }}>Leave</button>
+        </div>
+      );
+    } }
+  ], [attendanceData]);
 
   return (
     <Layout navItems={navItems} pageTitle="Mark Attendance">
@@ -153,7 +147,7 @@ const FacultyDashboard = () => {
         </div>
       ) : (
         <>
-          <div className="card mb-6" style={{ padding: '20px' }}>
+          <motion.div className="card mb-6" style={{ padding: '20px' }} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ type: "spring", stiffness: 100 }}>
             <div className="faculty-controls flex-between">
               <div className="flex-start">
                 <select className="input-sys" style={{ width: '260px' }} value={selectedCourse} onChange={e => setSelectedCourse(e.target.value)}>
@@ -170,7 +164,7 @@ const FacultyDashboard = () => {
                 </div>
               )}
             </div>
-          </div>
+          </motion.div>
 
           {existingRecords && (
             <div className="alert-toast alert-info">
@@ -188,143 +182,26 @@ const FacultyDashboard = () => {
             </div>
           ) : selectedCourse && students.length > 0 ? (
             <form onSubmit={handleSubmit}>
-              <div className="card mb-6">
+              <motion.div className="card mb-6" initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ type: "spring", stiffness: 100 }}>
                 <div className="section-head" style={{ padding: '20px 24px 0', marginBottom: '16px' }}>
                   <span className="section-title">Enrolled Students ({students.length})</span>
-                  <div className="flex-start" style={{ gap: '8px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-                    <div className="table-search-wrap">
-                      <Search size={14} className="table-search-icon" />
-                      <input
-                        className="input-sys table-search-input"
-                        type="text"
-                        placeholder="Search students..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                      />
-                      {searchQuery && (
-                        <button
-                          type="button"
-                          className="btn-icon table-clear-btn"
-                          onClick={() => setSearchQuery('')}
-                          aria-label="Clear student search"
-                        >
-                          <X size={14} />
-                        </button>
-                      )}
-                    </div>
-                    <span className="badge badge-neutral">Matches: {filteredStudents.length}</span>
+                  <div className="flex-start" style={{ gap: '8px' }}>
                     <span className="badge badge-green">Present: {presentCount}</span>
                     <span className="badge badge-red">Absent: {absentCount}</span>
                     <span className="badge badge-amber">Leave: {leaveCount}</span>
                   </div>
                 </div>
                 
-                <div className="table-container" style={{ maxHeight: '500px' }}>
-                  <table className="table-clean">
-                    <thead>
-                      <tr>
-                        <th style={{ width: '60px' }}>#</th>
-                        <th>Student Information</th>
-                        <th>Status Selection</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {paginatedStudents.length === 0 ? (
-                        <tr>
-                          <td colSpan={3}>
-                            <div className="empty-state">
-                              <div className="empty-title">No students found</div>
-                              <div className="empty-desc">{searchQuery ? 'No enrolled students match your search.' : 'No enrolled students found for this course.'}</div>
-                            </div>
-                          </td>
-                        </tr>
-                      ) : paginatedStudents.map((s, i) => {
-                        const st = attendanceData[s._id] || 'absent';
-                        return (
-                          <tr key={s._id}>
-                            <td style={{ color: 'var(--gray-400)', fontWeight: 500 }}>{startIndex + i + 1}</td>
-                            <td>
-                              <div style={{ fontWeight: 500, color: 'var(--gray-900)' }}>{s.name}</div>
-                              <div style={{ fontSize: '12px', color: 'var(--gray-500)', marginTop: '2px' }}>{s.registrationNumber || s.email}</div>
-                            </td>
-                            <td>
-                              <div className="toggle-wrapper">
-                                <button type="button" className={`toggle-btn ${st === 'present' ? 'active-present' : ''}`} onClick={() => setStatus(s._id, 'present')}>Present</button>
-                                <button type="button" className={`toggle-btn ${st === 'absent' ? 'active-absent' : ''}`} onClick={() => setStatus(s._id, 'absent')}>Absent</button>
-                                <button type="button" className={`toggle-btn ${st === 'leave' ? 'active-leave' : ''}`} onClick={() => setStatus(s._id, 'leave')}>Leave</button>
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-                {filteredStudents.length > 0 && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 24px', borderTop: '1px solid var(--border-subtle)', gap: '12px', flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: '12px', color: 'var(--gray-500)' }}>
-                      Showing {paginationStart}-{paginationEnd} of {filteredStudents.length} students
-                    </span>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <select
-                        className="input-sys"
-                        style={{ width: '88px', height: '32px', fontSize: '12px' }}
-                        value={itemsPerPage}
-                        onChange={(e) => setItemsPerPage(Number(e.target.value))}
-                        aria-label="Rows per page"
-                      >
-                        <option value={5}>5 / page</option>
-                        <option value={10}>10 / page</option>
-                        <option value={20}>20 / page</option>
-                      </select>
-                      <button
-                        type="button"
-                        className="btn btn-secondary"
-                        style={{ padding: '4px 10px' }}
-                        onClick={() => setCurrentPage(1)}
-                        disabled={currentPage === 1}
-                        aria-label="Go to first page"
-                      >
-                        <ChevronsLeft size={14} />
-                      </button>
-                      <button
-                        type="button"
-                        className="btn btn-secondary"
-                        style={{ padding: '4px 10px' }}
-                        onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-                        disabled={currentPage === 1}
-                      >
-                        <ChevronLeft size={14} />
-                      </button>
-                      <span style={{ fontSize: '12px', color: 'var(--gray-500)' }}>
-                        Page {currentPage} of {totalPages || 1}
-                      </span>
-                      <button
-                        type="button"
-                        className="btn btn-secondary"
-                        style={{ padding: '4px 10px' }}
-                        onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
-                        disabled={currentPage >= totalPages}
-                      >
-                        <ChevronRight size={14} />
-                      </button>
-                      <button
-                        type="button"
-                        className="btn btn-secondary"
-                        style={{ padding: '4px 10px' }}
-                        onClick={() => setCurrentPage(totalPages)}
-                        disabled={currentPage >= totalPages}
-                        aria-label="Go to last page"
-                      >
-                        <ChevronsRight size={14} />
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
+                <SaaSTable 
+                  data={students} 
+                  columns={studentColumns}
+                  searchPlaceholder="Search enrolled students..."
+                  defaultPageSize={10}
+                />
+              </motion.div>
               
               <div className="faculty-action-bar flex-between">
-                <span style={{ fontSize: '12px', color: 'var(--gray-500)' }}>Please review all entries before saving.</span>
+                <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Please review all entries before saving.</span>
                 <button className="btn btn-primary" style={{ padding: '0 24px' }} type="submit" disabled={loading}>
                   {loading ? 'Saving Records...' : existingRecords ? 'Update Final Record' : 'Save Attendance Record'}
                 </button>

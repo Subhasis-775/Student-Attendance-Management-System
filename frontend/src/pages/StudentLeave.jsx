@@ -146,10 +146,10 @@ const StudentLeave = () => {
                     <tr key={l._id}>
                       <td style={{ fontWeight: 500 }}>{new Date(l.date).toLocaleDateString()}</td>
                       <td>
-                         <div style={{ fontWeight: 500, color: 'var(--gray-900)' }}>{l.course?.name || '—'}</div>
-                         <div style={{ fontSize: '11px', color: 'var(--gray-500)' }}>{l.course?.type === 'lab' ? 'Lab' : 'Theory'}  •  {l.course?.courseCode}</div>
+                         <div style={{ fontWeight: 500, color: 'var(--text-primary)' }}>{l.course?.name || '—'}</div>
+                         <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>{l.course?.type === 'lab' ? 'Lab' : 'Theory'}  •  {l.course?.courseCode}</div>
                       </td>
-                      <td style={{ maxWidth: '200px', fontSize: '12px', color: 'var(--gray-600)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={l.reason}>
+                      <td style={{ maxWidth: '200px', fontSize: '12px', color: 'var(--text-secondary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={l.reason}>
                         {l.reason}
                       </td>
                       <td>

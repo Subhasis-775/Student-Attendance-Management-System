@@ -71,7 +71,7 @@ const updateLeaveStatus = async (req, res) => {
     }
 
     // Verify this faculty teaches this course (security check)
-    if (leaveRequest.course.faculty.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
+    if (!leaveRequest.course.faculty.some(f => f.toString() === req.user._id.toString()) && req.user.role !== 'admin') {
       return res.status(403).json({ message: 'Not authorized to approve this request' });
     }
 

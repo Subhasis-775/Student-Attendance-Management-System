@@ -83,7 +83,7 @@ const Home = () => {
           </motion.div>
           <h1 style={{ fontSize: '56px', fontWeight: 800, letterSpacing: '-0.03em', lineHeight: '1.1', marginBottom: '24px', color: 'var(--text-primary)' }}>
             Attendance tracking, <br />
-            <span style={{ color: 'var(--primary-500)' }}>magnificently simplified.</span>
+            <span className="text-gradient">magnificently simplified.</span>
           </h1>
           <p style={{ fontSize: '18px', color: 'var(--text-secondary)', lineHeight: '1.6', marginBottom: '40px', maxWidth: '600px', margin: '0 auto 40px' }}>
             Elevate your institution with a production-grade infrastructure designed to manage enrollments, track daily attendance, and process leave requests seamlessly.
@@ -116,7 +116,7 @@ const Home = () => {
             viewport={{ once: true, margin: "-50px" }}
             variants={{
               hidden: { opacity: 0 },
-              visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
+              visible: { opacity: 1, transition: { staggerChildren: 0.15 } }
             }}
             style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '32px' }}
           >
@@ -124,7 +124,7 @@ const Home = () => {
               <motion.div 
                 key={idx} 
                 variants={{
-                  hidden: { opacity: 0, y: 30 },
+                  hidden: { opacity: 0, y: 40 },
                   visible: { opacity: 1, y: 0, transition: { type: "spring", damping: 20, stiffness: 100 } }
                 }}
                 whileHover={{ y: -6, boxShadow: 'var(--shadow-lg)' }}

@@ -3,16 +3,33 @@ import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import Layout from '../components/Layout';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
-import { LayoutDashboard, BookOpen, GraduationCap, Clock, CheckCircle2, XCircle, Calendar, User, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, X } from 'lucide-react';
+import { LayoutDashboard, BookOpen, GraduationCap, Clock, CheckCircle2, XCircle, Calendar, User, Download } from 'lucide-react';
+import { motion } from 'framer-motion';
 
-const ITEMS_PER_PAGE = 6;
+const CustomTooltip = ({ active, payload }) => {
+  if (active && payload && payload.length) {
+    return (
+      <div style={{ backgroundColor: 'var(--bg-glass)', backdropFilter: 'blur(12px)', padding: '12px', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)', boxShadow: 'var(--shadow-lg)' }}>
+        <p style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px' }}>{payload[0].payload.name}</p>
+        <p style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+          Attendance: <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{payload[0].value}%</span>
+        </p>
+        <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
+          {payload[0].payload.present} / {payload[0].payload.total} classes attended
+        </p>
+      </div>
+    );
+  }
+  return null;
+};
 
 const StudentDashboard = () => {
-  const [stats, setStats] = useState([]);
+  const [monthlyStats, setMonthlyStats] = useState([]);
+  const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7));
+  const [overall, setOverall] = useState({ attended: 0, totalClasses: 0, percentage: '0.00', eligibility: 'Not Eligible' });
+  const [monthlyOverall, setMonthlyOverall] = useState({ attended: 0, totalClasses: 0, percentage: '0.00', eligibility: 'Not Eligible' });
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(ITEMS_PER_PAGE);
   const { user } = useAuth();
   
   const navItems = [
@@ -26,74 +43,93 @@ const StudentDashboard = () => {
     const fetchStats = async () => {
       setLoading(true);
       try {
-        const { data } = await axios.get('http://localhost:5000/api/attendance/stats', {
-          headers: { Authorization: `Bearer ${user.token}` }
-        });
-        setStats(data);
+        const headers = { Authorization: `Bearer ${user.token}` };
+        const [cumulativeRes, monthlyRes] = await Promise.all([
+          axios.get('http://localhost:5000/api/attendance/cumulative', { headers }),
+          axios.get(`http://localhost:5000/api/attendance/monthly?month=${selectedMonth}`, { headers }),
+        ]);
+
+        setMonthlyStats(monthlyRes.data.courses || []);
+        setOverall(cumulativeRes.data.overall || { attended: 0, totalClasses: 0, percentage: '0.00', eligibility: 'Not Eligible' });
+        setMonthlyOverall(monthlyRes.data.overall || { attended: 0, totalClasses: 0, percentage: '0.00', eligibility: 'Not Eligible' });
       } catch (err) { console.error(err); }
       setLoading(false);
     };
     fetchStats();
-  }, [user]);
+  }, [user, selectedMonth]);
 
-  const totalClasses = stats.reduce((s, c) => s + c.cappedTotalClasses, 0);
-  const totalPresent = stats.reduce((s, c) => s + c.cappedPresentClasses, 0);
+  const totalClasses = Number(overall.totalClasses || 0);
+  const totalPresent = Number(overall.attended || 0);
   const totalAbsent = totalClasses - totalPresent;
-  const overallPct = totalClasses === 0 ? 0 : ((totalPresent / totalClasses) * 100);
-  const isEligible = overallPct >= 75;
+  const overallPct = Number(overall.percentage || 0);
+  const isEligible = overall.eligibility === 'Eligible';
 
-  const notifications = stats
+  const notifications = monthlyStats
     .filter(s => parseFloat(s.percentage) < 75)
-    .map(s => `Your attendance in ${s.course.name} is currently ${s.percentage}%. Target: 75%.`);
+    .map(s => `Monthly attendance in ${s.course.name} is ${s.percentage}%. Target: 75%.`);
 
-  const filteredStats = stats.filter(s => 
+  const filteredStats = monthlyStats.filter(s => 
     s.course.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
     s.course.courseCode.toLowerCase().includes(searchQuery.toLowerCase())
   );
-  const totalPages = Math.ceil(filteredStats.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const paginatedStats = filteredStats.slice(startIndex, startIndex + itemsPerPage);
 
-  const chartData = paginatedStats.map(s => ({
+  const chartData = filteredStats.map(s => ({
     name: s.course.courseCode,
     percentage: parseFloat(s.percentage),
-    present: s.cappedPresentClasses,
-    total: s.cappedTotalClasses,
+    present: s.attended,
+    total: s.totalClasses,
   }));
 
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchQuery, itemsPerPage]);
-
-  useEffect(() => {
-    if (totalPages > 0 && currentPage > totalPages) {
-      setCurrentPage(totalPages);
-    }
-  }, [currentPage, totalPages]);
-
   const getBarColor = (pct) => pct >= 75 ? 'var(--green-500)' : pct >= 50 ? 'var(--amber-500)' : 'var(--red-500)';
-  
-  const CustomTooltip = ({ active, payload }) => {
-    if (active && payload && payload.length) {
-      return (
-        <div style={{ backgroundColor: '#fff', padding: '12px', border: '1px solid var(--gray-200)', borderRadius: 'var(--radius-md)', boxShadow: 'var(--shadow-lg)' }}>
-          <p style={{ fontSize: '12px', fontWeight: 600, color: 'var(--gray-900)', marginBottom: '4px' }}>{payload[0].payload.name}</p>
-          <p style={{ fontSize: '13px', color: 'var(--gray-600)' }}>
-            Attendance: <span style={{ fontWeight: 600, color: 'var(--gray-900)' }}>{payload[0].value}%</span>
-          </p>
-          <p style={{ fontSize: '11px', color: 'var(--gray-400)', marginTop: '4px' }}>
-            {payload[0].payload.present} / {payload[0].payload.total} classes attended
-          </p>
-        </div>
-      );
-    }
-    return null;
-  };
 
+  const exportMonthlyCSV = () => {
+    const monthLabel = selectedMonth || new Date().toISOString().slice(0, 7);
+    const safeName = (user.name || 'student').replace(/,/g, ' ').trim();
+    const safeReg = (user.registrationNumber || 'N/A').replace(/,/g, ' ').trim();
+
+    const headerRows = [
+      ['Student Name', safeName],
+      ['Registration Number', safeReg],
+      ['Month', monthLabel],
+      ['Overall Attended', monthlyOverall.attended ?? 0],
+      ['Overall Total Classes', monthlyOverall.totalClasses ?? 0],
+      ['Overall Percentage', `${monthlyOverall.percentage ?? '0.00'}%`],
+      ['Overall Eligibility', monthlyOverall.eligibility ?? 'Not Eligible'],
+      [],
+      ['Subject Name', 'Course Code', 'Type', 'Attended', 'Total Classes', 'Percentage', 'Eligibility', 'Below 75%'],
+    ];
+
+    const subjectRows = monthlyStats.map((item) => ([
+      (item.course?.name || 'N/A').replace(/,/g, ' '),
+      (item.course?.courseCode || 'N/A').replace(/,/g, ' '),
+      item.course?.type || 'theory',
+      item.attended ?? 0,
+      item.totalClasses ?? 0,
+      `${item.percentage ?? '0.00'}%`,
+      item.eligibility || 'Not Eligible',
+      item.belowThreshold ? 'Yes' : 'No',
+    ]));
+
+    const allRows = [...headerRows, ...subjectRows];
+    const csvContent = allRows
+      .map((row) => row.map((cell) => `"${String(cell ?? '').replace(/"/g, '""')}"`).join(','))
+      .join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `${safeReg}_${monthLabel}_Monthly_Attendance_Report.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+  
   return (
     <Layout navItems={navItems} pageTitle="Overview" onSearch={setSearchQuery} notifications={notifications}>
       <div className="page-title">Welcome back, {user.name.split(' ')[0]}</div>
-      <div className="page-subtitle">Here is your attendance summary for the current semester.</div>
+      <div className="page-subtitle">Track monthly and cumulative attendance with dynamic eligibility status.</div>
 
       {loading ? (
         <>
@@ -108,39 +144,60 @@ const StudentDashboard = () => {
       ) : (
         <>
           {/* KPIs */}
-          <div className="kpi-grid">
-            <div className="kpi-card">
+          <motion.div className="kpi-grid" initial="hidden" animate="visible" variants={{ hidden: { opacity: 0 }, visible: { opacity: 1, transition: { staggerChildren: 0.1 } } }}>
+            <motion.div className="kpi-card" variants={{ hidden: { opacity: 0, y: 15 }, visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 100 } } }}>
               <div className="kpi-title">
                 Total Classes <Clock size={16} className="kpi-icon" />
               </div>
               <div className="kpi-value">{totalClasses}</div>
-              <div className="kpi-meta">Theory: 30 Max · Lab: 10 Max</div>
-            </div>
+              <div className="kpi-meta">Cumulative (monthly class cap enforced at backend)</div>
+            </motion.div>
             
-            <div className="kpi-card">
+            <motion.div className="kpi-card" variants={{ hidden: { opacity: 0, y: 15 }, visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 100 } } }}>
               <div className="kpi-title">
                 Classes Attended <CheckCircle2 size={16} className="kpi-icon" style={{ color: 'var(--green-500)' }} />
               </div>
               <div className="kpi-value" style={{ color: 'var(--green-600)' }}>{totalPresent}</div>
               <div className="kpi-meta">Includes approved leaves</div>
-            </div>
+            </motion.div>
             
-            <div className="kpi-card">
+            <motion.div className="kpi-card" variants={{ hidden: { opacity: 0, y: 15 }, visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 100 } } }}>
               <div className="kpi-title">
                 Classes Missed <XCircle size={16} className="kpi-icon" style={{ color: 'var(--red-500)' }} />
               </div>
               <div className="kpi-value" style={{ color: 'var(--red-600)' }}>{totalAbsent}</div>
               <div className="kpi-meta">Counted against eligibility</div>
-            </div>
+            </motion.div>
             
-            <div className="kpi-card">
+            <motion.div className="kpi-card" variants={{ hidden: { opacity: 0, y: 15 }, visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 100 } } }}>
               <div className="kpi-title">
                 Overall Attendance <GraduationCap size={16} className="kpi-icon" />
               </div>
-              <div className="kpi-value">{overallPct.toFixed(1)}%</div>
+              <div className="kpi-value text-gradient" style={{ display: 'inline-block' }}>{overallPct.toFixed(1)}%</div>
               <div className="kpi-meta" style={{ marginTop: 'auto' }}>
                 <span className={`badge ${isEligible ? 'badge-green' : 'badge-red'}`}>
-                  {isEligible ? 'Target Met (≥75%)' : 'Action Required (<75%)'}
+                  {isEligible ? 'Eligible' : 'Not Eligible'}
+                </span>
+              </div>
+            </motion.div>
+          </motion.div>
+
+          <div className="card mb-6" style={{ padding: '16px 20px', position: 'relative', overflow: 'hidden' }}>
+            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '100%', background: 'linear-gradient(90deg, var(--primary-50), transparent)', opacity: 0.3, zIndex: 0, pointerEvents: 'none' }}></div>
+            <div className="flex-between" style={{ position: 'relative', zIndex: 1 }}>
+              <div>
+                <div style={{ fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px' }}>Monthly Report</div>
+                <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                  {monthlyOverall.attended} / {monthlyOverall.totalClasses} classes attended in {selectedMonth}
+                </div>
+              </div>
+              <div className="flex-start">
+                <input className="input-sys" type="month" value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)} />
+                <button className="btn btn-secondary" type="button" onClick={exportMonthlyCSV} disabled={monthlyStats.length === 0}>
+                  <Download size={14} /> Download CSV
+                </button>
+                <span className={`badge ${monthlyOverall.eligibility === 'Eligible' ? 'badge-green' : 'badge-red'}`}>
+                  {monthlyOverall.eligibility}
                 </span>
               </div>
             </div>
@@ -155,9 +212,9 @@ const StudentDashboard = () => {
               <div style={{ padding: '24px', height: '300px', minWidth: 0 }}>
                 <ResponsiveContainer width="99%" height="100%">
                   <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }} barSize={32}>
-                    <XAxis dataKey="name" tick={{ fontSize: 11, fill: 'var(--gray-500)' }} axisLine={false} tickLine={false} dy={10} />
-                    <YAxis domain={[0, 100]} tick={{ fontSize: 11, fill: 'var(--gray-500)' }} axisLine={false} tickLine={false} dx={-10} />
-                    <Tooltip cursor={{ fill: 'var(--gray-50)' }} content={<CustomTooltip />} />
+                    <XAxis dataKey="name" tick={{ fontSize: 11, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} dy={10} />
+                    <YAxis domain={[0, 100]} tick={{ fontSize: 11, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} dx={-10} />
+                    <Tooltip cursor={{ fill: 'var(--bg-surface-hover)' }} content={<CustomTooltip />} />
                     <Bar dataKey="percentage" radius={[4, 4, 0, 0]}>
                       {chartData.map((entry, i) => (
                         <Cell key={`cell-${i}`} fill={getBarColor(entry.percentage)} />
@@ -173,23 +230,9 @@ const StudentDashboard = () => {
           <div className="card">
             <div className="section-head" style={{ padding: '20px 24px 0' }}>
               <span className="section-title">Enrolled Subjects</span>
-              <div className="flex-start" style={{ gap: '8px', flexWrap: 'wrap' }}>
-                <span className="badge badge-neutral">Matches: {filteredStats.length}</span>
-                {searchQuery && (
-                  <button
-                    type="button"
-                    className="btn btn-secondary"
-                    style={{ height: '30px', padding: '0 10px', fontSize: '12px' }}
-                    onClick={() => setSearchQuery('')}
-                  >
-                    <X size={12} />
-                    Clear Search
-                  </button>
-                )}
-                {filteredStats.some(s => parseFloat(s.percentage) < 75) && (
-                  <span className="badge badge-amber">Warning: Low Attendance</span>
-                )}
-              </div>
+              {filteredStats.some(s => parseFloat(s.percentage) < 75) && (
+                <span className="badge badge-amber">Warning: Low Attendance</span>
+              )}
             </div>
             
             <div className="table-container">
@@ -216,14 +259,12 @@ const StudentDashboard = () => {
                       </td>
                     </tr>
                   ) : (
-                    paginatedStats.map(s => {
+                    filteredStats.map(s => {
                       const pct = parseFloat(s.percentage);
                       const isLow = pct < 75;
-                      const maxC = s.course.maxClasses || (s.course.type === 'lab' ? 10 : 30);
-                      
                       return (
                         <tr key={s.course._id} className={isLow ? 'tr-warning' : ''}>
-                          <td style={{ fontWeight: 500, color: 'var(--gray-900)' }}>{s.course.name}</td>
+                          <td style={{ fontWeight: 500, color: 'var(--text-primary)' }}>{s.course.name}</td>
                           <td><span className="badge badge-neutral">{s.course.courseCode}</span></td>
                           <td>
                             <span className={`badge ${s.course.type === 'lab' ? 'badge-blue' : 'badge-neutral'}`}>
@@ -231,7 +272,7 @@ const StudentDashboard = () => {
                             </span>
                           </td>
                           <td style={{ fontWeight: 500 }}>
-                            {s.cappedPresentClasses} / {maxC} <span style={{ color: 'var(--gray-400)', fontWeight: 400, fontSize: '12px' }}>({pct}%)</span>
+                            {s.attended} / {s.totalClasses} <span style={{ color: 'var(--text-muted)', fontWeight: 400, fontSize: '12px' }}>({pct}%)</span>
                           </td>
                           <td>
                             <div className="meter-rail">
@@ -239,8 +280,8 @@ const StudentDashboard = () => {
                             </div>
                           </td>
                           <td>
-                            <span className={`badge ${s.isEligible ? 'badge-green' : 'badge-red'}`}>
-                              {s.isEligible ? 'Eligible' : 'Not Eligible'}
+                            <span className={`badge ${s.eligibility === 'Eligible' ? 'badge-green' : 'badge-red'}`}>
+                              {s.eligibility}
                             </span>
                           </td>
                         </tr>
@@ -250,67 +291,6 @@ const StudentDashboard = () => {
                 </tbody>
               </table>
             </div>
-            {filteredStats.length > 0 && (
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 24px', borderTop: '1px solid var(--border-subtle)', gap: '12px', flexWrap: 'wrap' }}>
-                <span style={{ fontSize: '12px', color: 'var(--gray-500)' }}>
-                  Showing {startIndex + 1}-{Math.min(startIndex + itemsPerPage, filteredStats.length)} of {filteredStats.length} subjects
-                </span>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <select
-                    className="input-sys"
-                    style={{ width: '88px', height: '32px', fontSize: '12px' }}
-                    value={itemsPerPage}
-                    onChange={(e) => setItemsPerPage(Number(e.target.value))}
-                    aria-label="Rows per page"
-                  >
-                    <option value={3}>3 / page</option>
-                    <option value={6}>6 / page</option>
-                    <option value={12}>12 / page</option>
-                  </select>
-                  <button
-                    type="button"
-                    className="btn btn-secondary"
-                    style={{ padding: '4px 10px' }}
-                    onClick={() => setCurrentPage(1)}
-                    disabled={currentPage === 1}
-                    aria-label="Go to first page"
-                  >
-                    <ChevronsLeft size={14} />
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-secondary"
-                    style={{ padding: '4px 10px' }}
-                    onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-                    disabled={currentPage === 1}
-                  >
-                    <ChevronLeft size={14} />
-                  </button>
-                  <span style={{ fontSize: '12px', color: 'var(--gray-500)' }}>
-                    Page {currentPage} of {totalPages || 1}
-                  </span>
-                  <button
-                    type="button"
-                    className="btn btn-secondary"
-                    style={{ padding: '4px 10px' }}
-                    onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
-                    disabled={currentPage >= totalPages}
-                  >
-                    <ChevronRight size={14} />
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-secondary"
-                    style={{ padding: '4px 10px' }}
-                    onClick={() => setCurrentPage(totalPages)}
-                    disabled={currentPage >= totalPages}
-                    aria-label="Go to last page"
-                  >
-                    <ChevronsRight size={14} />
-                  </button>
-                </div>
-              </div>
-            )}
           </div>
         </>
       )}

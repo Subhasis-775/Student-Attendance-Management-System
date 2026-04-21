@@ -1,13 +1,30 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import Layout from '../components/Layout';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, ReferenceLine } from 'recharts';
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 import { PenSquare, FileBarChart, Download, Users, AlertCircle, FileText, User } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { SaaSTable } from '../components/SaaSTable';
+
+const CustomTooltip = ({ active, payload }) => {
+  if (active && payload && payload.length) {
+    return (
+      <div style={{ backgroundColor: 'var(--bg-glass)', backdropFilter: 'blur(12px)', padding: '12px', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)', boxShadow: 'var(--shadow-lg)' }}>
+        <p style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px' }}>{payload[0].payload.name}</p>
+        <p style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+          Attendance: <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{payload[0].value}%</span>
+        </p>
+      </div>
+    );
+  }
+  return null;
+};
 
 const FacultyReport = () => {
   const [courses, setCourses] = useState([]);
   const [selectedCourse, setSelectedCourse] = useState('');
+  const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7));
   const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(false);
   const { user } = useAuth();
@@ -25,30 +42,36 @@ const FacultyReport = () => {
         const { data } = await axios.get('http://localhost:5000/api/admin/courses', {
           headers: { Authorization: `Bearer ${user.token}` }
         });
-        const myCourses = data.filter(c => c.faculty && c.faculty._id === user._id);
+        const myCourses = data.filter(c => c.faculty && c.faculty.some(f => String(f._id) === String(user._id)));
         setCourses(myCourses);
       } catch (err) { console.error(err); }
     };
     fetchCourses();
   }, [user]);
 
-  useEffect(() => {
-    if (selectedCourse) {
-      fetchReport(selectedCourse);
-    } else {
-      setReport(null);
-    }
-  }, [selectedCourse]);
-
-  const fetchReport = async (courseId) => {
+  const fetchReport = async (courseId, month = selectedMonth) => {
     setLoading(true);
     try {
-      const { data } = await axios.get(`http://localhost:5000/api/attendance/report/${courseId}`, {
+      const { data } = await axios.get(`http://localhost:5000/api/attendance/report/${courseId}?month=${month}`, {
         headers: { Authorization: `Bearer ${user.token}` }
       });
       setReport(data);
     } catch (err) { console.error(err); }
     setLoading(false);
+  };
+
+  const handleCourseChange = (courseId) => {
+    setSelectedCourse(courseId);
+    if (!courseId) {
+      setReport(null);
+      return;
+    }
+    fetchReport(courseId, selectedMonth);
+  };
+
+  const handleMonthChange = (month) => {
+    setSelectedMonth(month);
+    if (selectedCourse) fetchReport(selectedCourse, month);
   };
 
   const exportCSV = () => {
@@ -61,7 +84,7 @@ const FacultyReport = () => {
     report.report.forEach(r => {
       const cleanName = r.student.name.replace(/,/g, '');
       const cleanReg = r.student.registrationNumber || 'N/A';
-      const status = r.isEligible ? 'Eligible' : 'At Risk';
+      const status = r.isEligible ? 'Eligible' : 'Not Eligible';
       csvContent += `${cleanName},${cleanReg},${r.present},${r.absent},${r.total},${r.percentage}%,${status}\n`;
     });
 
@@ -85,32 +108,66 @@ const FacultyReport = () => {
 
   const belowThreshold = report?.report?.filter(r => parseFloat(r.percentage) < 75).length || 0;
 
-  const CustomTooltip = ({ active, payload }) => {
-    if (active && payload && payload.length) {
+  const ledgerColumns = useMemo(() => [
+    { id: 'info', header: 'Student Information', cell: ({ row }) => {
+      const r = row.original;
       return (
-        <div style={{ backgroundColor: '#fff', padding: '12px', border: '1px solid var(--gray-200)', borderRadius: 'var(--radius-md)', boxShadow: 'var(--shadow-lg)' }}>
-          <p style={{ fontSize: '12px', fontWeight: 600, color: 'var(--gray-900)', marginBottom: '4px' }}>{payload[0].payload.name}</p>
-          <p style={{ fontSize: '13px', color: 'var(--gray-600)' }}>
-            Attendance: <span style={{ fontWeight: 600, color: 'var(--gray-900)' }}>{payload[0].value}%</span>
-          </p>
+        <div>
+          <div style={{ fontWeight: 500, color: 'var(--text-primary)' }}>{r.student.name}</div>
+          <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '2px' }}>{r.student.registrationNumber || 'No ID'}</div>
         </div>
       );
-    }
-    return null;
-  };
+    } },
+    { id: 'records', header: 'Attendance Records', cell: ({ row }) => {
+      const r = row.original;
+      return (
+        <div>
+          <div style={{ fontSize: '13px' }}>
+            <span style={{ fontWeight: 500, color: 'var(--green-600)' }}>{r.present}</span>
+            <span style={{ color: 'var(--text-muted)', margin: '0 4px' }}>/</span>
+            <span style={{ fontWeight: 500, color: 'var(--text-primary)' }}>{r.total} Classes</span>
+          </div>
+          {r.absent > 0 && <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Missed: {r.absent}</div>}
+        </div>
+      );
+    } },
+    { id: 'percentage', header: 'Percentage', accessorKey: 'percentage', cell: ({ row }) => {
+      const pct = parseFloat(row.original.percentage);
+      return <div style={{ fontWeight: 600, color: getColor(pct) }}>{pct}%</div>;
+    } },
+    { id: 'progress', header: 'Progress', cell: ({ row }) => {
+      const pct = parseFloat(row.original.percentage);
+      return (
+        <div style={{ minWidth: '120px' }}>
+          <div className="meter-rail">
+            <div className={`meter-fill ${pct >= 75 ? 'good' : pct >= 50 ? 'warn' : 'bad'}`} style={{ width: `${Math.min(pct, 100)}%` }} />
+          </div>
+        </div>
+      );
+    } },
+    { id: 'status', header: 'Status', cell: ({ row }) => {
+      const r = row.original;
+      return (
+        <span className={`badge ${r.isEligible ? 'badge-green' : 'badge-red'}`}>
+          {r.isEligible ? 'Eligible' : 'Not Eligible'}
+        </span>
+      );
+    } }
+  ], []);
 
   return (
     <Layout navItems={navItems} pageTitle="Reports">
       <div className="page-title">Course Analytics</div>
-      <div className="page-subtitle">View aggregate attendance metrics and identify students at risk.</div>
+      <div className="page-subtitle">Monthly attendance report with below-threshold flagging and eligibility status.</div>
 
-      <div className="card mb-6" style={{ padding: '20px' }}>
+      <motion.div className="card mb-6" style={{ padding: '20px' }} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ type: "spring", stiffness: 100 }}>
         <div className="report-controls flex-between">
           <div className="flex-start">
-            <select className="input-sys" style={{ width: '280px' }} value={selectedCourse} onChange={e => setSelectedCourse(e.target.value)}>
+            <select className="input-sys" style={{ width: '280px' }} value={selectedCourse} onChange={e => handleCourseChange(e.target.value)}>
               <option value="">Select a course to view report...</option>
               {courses.map(c => <option key={c._id} value={c._id}>{c.courseCode} — {c.name}</option>)}
             </select>
+            <input className="input-sys" type="month" value={selectedMonth} onChange={(e) => handleMonthChange(e.target.value)} />
             {belowThreshold > 0 && report && !loading && (
               <span className="badge badge-red" style={{ padding: '6px 10px' }}>
                 <AlertCircle size={12} style={{ marginRight: '4px', verticalAlign: 'text-top' }} /> 
@@ -125,7 +182,7 @@ const FacultyReport = () => {
             </button>
           )}
         </div>
-      </div>
+      </motion.div>
 
       {loading && (
         <div className="card" style={{ padding: '40px' }}>
@@ -139,89 +196,49 @@ const FacultyReport = () => {
       {report && !loading && (
         <>
           {/* Chart */}
-          <div className="card mb-6">
+          <motion.div className="card mb-6" initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ type: "spring", stiffness: 100 }}>
             <div className="section-head" style={{ padding: '20px 24px 0', marginBottom: '16px' }}>
               <span className="section-title">Cohort Distribution</span>
             </div>
             <div style={{ padding: '0 24px 24px', height: '280px', minWidth: 0 }}>
               <ResponsiveContainer width="99%" height="100%">
-                <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }} barSize={28}>
-                  <XAxis dataKey="name" tick={{ fontSize: 11, fill: 'var(--gray-500)' }} axisLine={false} tickLine={false} dy={10} />
-                  <YAxis domain={[0, 100]} tick={{ fontSize: 11, fill: 'var(--gray-500)' }} axisLine={false} tickLine={false} dx={-10} />
-                  <Tooltip cursor={{ fill: 'var(--gray-50)' }} content={<CustomTooltip />} />
-                  <ReferenceLine y={75} stroke="var(--red-400)" strokeDasharray="4 4" label={{ value: '75% Minimum', position: 'insideTopRight', fontSize: 10, fill: 'var(--red-500)' }} />
-                  <Bar dataKey="percentage" radius={[4, 4, 0, 0]}>
-                    {chartData.map((entry, i) => (
-                      <Cell key={`cell-${i}`} fill={getColor(entry.percentage)} />
-                    ))}
-                  </Bar>
-                </BarChart>
+                <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="colorPct" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="var(--primary-500)" stopOpacity={0.8}/>
+                      <stop offset="95%" stopColor="var(--primary-500)" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <XAxis dataKey="name" tick={false} axisLine={false} tickLine={false} />
+                  <YAxis domain={[0, 100]} tick={{ fontSize: 11, fill: 'var(--text-secondary)' }} axisLine={false} tickLine={false} dx={-10} />
+                  <Tooltip content={<CustomTooltip />} />
+                  <ReferenceLine y={75} stroke="var(--red-500)" strokeDasharray="4 4" label={{ value: '75% Threshold', position: 'insideTopRight', fontSize: 10, fill: 'var(--red-500)' }} />
+                  <Area type="monotone" dataKey="percentage" stroke="var(--primary-500)" fillOpacity={1} fill="url(#colorPct)" activeDot={{ r: 6, fill: 'var(--bg-surface)', stroke: 'var(--primary-500)', strokeWidth: 3 }} />
+                </AreaChart>
               </ResponsiveContainer>
             </div>
-          </div>
+          </motion.div>
 
           {/* Report Table */}
-          <div className="card">
-            <div className="section-head" style={{ padding: '20px 24px 0', marginBottom: 0 }}>
+          <motion.div className="card" initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ type: "spring", stiffness: 100 }}>
+            <div className="section-head" style={{ padding: '20px 24px 10px', marginBottom: 0 }}>
               <span className="section-title">Student Ledger ({report.report.length})</span>
             </div>
-            <div className="table-container">
-              <table className="table-clean">
-                <thead>
-                  <tr>
-                    <th>Student Information</th>
-                    <th>Attendance Records</th>
-                    <th>Percentage</th>
-                    <th style={{ width: '160px' }}>Progress</th>
-                    <th>Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {report.report.length === 0 ? (
-                     <tr>
-                       <td colSpan={5}>
-                         <div className="empty-state">
-                           <Users className="empty-icon" />
-                           <div className="empty-title">No students enrolled</div>
-                           <div className="empty-desc">There is no attendance data to generate a report for this course.</div>
-                         </div>
-                       </td>
-                     </tr>
-                  ) : report.report.map((r, i) => {
-                    const pct = parseFloat(r.percentage);
-                    const isLow = pct < 75;
-                    return (
-                      <tr key={r.student._id} className={isLow ? 'tr-warning' : ''}>
-                        <td>
-                          <div style={{ fontWeight: 500, color: 'var(--gray-900)' }}>{r.student.name}</div>
-                          <div style={{ fontSize: '12px', color: 'var(--gray-500)', marginTop: '2px' }}>{r.student.registrationNumber || 'No ID'}</div>
-                        </td>
-                        <td>
-                          <div style={{ fontSize: '13px' }}>
-                            <span style={{ fontWeight: 500, color: 'var(--green-600)' }}>{r.present}</span>
-                            <span style={{ color: 'var(--gray-400)', margin: '0 4px' }}>/</span>
-                            <span style={{ fontWeight: 500, color: 'var(--gray-700)' }}>{r.total} Classes</span>
-                          </div>
-                          {r.absent > 0 && <div style={{ fontSize: '12px', color: 'var(--gray-500)' }}>Missed: {r.absent}</div>}
-                        </td>
-                        <td style={{ fontWeight: 600, color: getColor(pct) }}>{r.percentage}%</td>
-                        <td>
-                          <div className="meter-rail">
-                            <div className={`meter-fill ${pct >= 75 ? 'good' : pct >= 50 ? 'warn' : 'bad'}`} style={{ width: `${Math.min(pct, 100)}%` }} />
-                          </div>
-                        </td>
-                        <td>
-                          <span className={`badge ${r.isEligible ? 'badge-green' : 'badge-red'}`}>
-                            {r.isEligible ? 'Eligible' : 'At Risk'}
-                          </span>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </div>
+            {report.report.length === 0 ? (
+              <div className="empty-state">
+                <Users className="empty-icon" />
+                <div className="empty-title">No students enrolled</div>
+                <div className="empty-desc">There is no attendance data to generate a report for this course.</div>
+              </div>
+            ) : (
+              <SaaSTable
+                data={report.report}
+                columns={ledgerColumns}
+                searchPlaceholder="Search ledger... "
+                defaultPageSize={10}
+              />
+            )}
+          </motion.div>
         </>
       )}
 

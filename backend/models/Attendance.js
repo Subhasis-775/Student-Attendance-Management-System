@@ -10,5 +10,7 @@ const attendanceSchema = new mongoose.Schema({
 // EDGE CASE #1: Compound unique index prevents duplicate entries
 // Same student cannot be marked twice for same course on same date
 attendanceSchema.index({ date: 1, course: 1, student: 1 }, { unique: true });
+attendanceSchema.index({ student: 1, date: -1 });
+attendanceSchema.index({ course: 1, date: -1 });
 
 module.exports = mongoose.model('Attendance', attendanceSchema);

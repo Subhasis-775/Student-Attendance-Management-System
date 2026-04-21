@@ -21,15 +21,15 @@ const seedData = async () => {
     });
 
     // 9 Faculty — one per subject (6 theory + 3 labs)
-    const fac1 = await User.create({ name: 'Dr. Meena Kumari', email: 'meena@university.edu', registrationNumber: 'FAC001', password: 'password123', role: 'faculty' });
-    const fac2 = await User.create({ name: 'Dr. Rajesh Patel', email: 'rajesh@university.edu', registrationNumber: 'FAC002', password: 'password123', role: 'faculty' });
-    const fac3 = await User.create({ name: 'Dr. Anita Sharma', email: 'anita@university.edu', registrationNumber: 'FAC003', password: 'password123', role: 'faculty' });
-    const fac4 = await User.create({ name: 'Dr. Suresh Nair', email: 'suresh@university.edu', registrationNumber: 'FAC004', password: 'password123', role: 'faculty' });
-    const fac5 = await User.create({ name: 'Dr. Priya Das', email: 'priya.das@university.edu', registrationNumber: 'FAC005', password: 'password123', role: 'faculty' });
-    const fac6 = await User.create({ name: 'Dr. Vikram Singh', email: 'vikram@university.edu', registrationNumber: 'FAC006', password: 'password123', role: 'faculty' });
-    const fac7 = await User.create({ name: 'Prof. Arun Mishra', email: 'arun@university.edu', registrationNumber: 'FAC007', password: 'password123', role: 'faculty' });
-    const fac8 = await User.create({ name: 'Prof. Kavita Rao', email: 'kavita@university.edu', registrationNumber: 'FAC008', password: 'password123', role: 'faculty' });
-    const fac9 = await User.create({ name: 'Prof. Deepak Mohan', email: 'deepak@university.edu', registrationNumber: 'FAC009', password: 'password123', role: 'faculty' });
+    // 8 Faculty as per curriculum requirements
+    const fac1 = await User.create({ name: 'Dr. Sanjukta Mohanty', email: 'sanjukta@university.edu', registrationNumber: 'FAC001', password: 'password123', role: 'faculty' });
+    const fac2 = await User.create({ name: 'Dr. Meenakhsi Pant', email: 'meenakhsi@university.edu', registrationNumber: 'FAC002', password: 'password123', role: 'faculty' });
+    const fac3 = await User.create({ name: 'Dr. Debasish kar', email: 'debasish@university.edu', registrationNumber: 'FAC003', password: 'password123', role: 'faculty' });
+    const fac4 = await User.create({ name: 'Mr. Santosh Maharana', email: 'santosh@university.edu', registrationNumber: 'FAC004', password: 'password123', role: 'faculty' });
+    const fac5 = await User.create({ name: 'Ms. Jyotirmayee Routray', email: 'jyotirmayee@university.edu', registrationNumber: 'FAC005', password: 'password123', role: 'faculty' });
+    const fac6 = await User.create({ name: 'Prof. Bharat chandra barik', email: 'bharat@university.edu', registrationNumber: 'FAC006', password: 'password123', role: 'faculty' });
+    const fac7 = await User.create({ name: 'Dr. Ashis kumar Mishra', email: 'ashis@university.edu', registrationNumber: 'FAC007', password: 'password123', role: 'faculty' });
+    const fac8 = await User.create({ name: 'Manoranjan Panda', email: 'manoranjan@university.edu', registrationNumber: 'FAC008', password: 'password123', role: 'faculty' });
 
     // Students
     const rawStudents = [
@@ -56,20 +56,21 @@ const seedData = async () => {
     // 6 Theory subjects (30 classes each) + 3 Lab subjects (10 classes each)
     const courses = await Course.insertMany([
       // Theory - 30 classes per semester
-      { courseCode: 'BH3403', name: 'Entrepreneurship Development', type: 'theory', maxClasses: 30, faculty: fac1._id, students: allStudents },
-      { courseCode: 'CS3102', name: 'Deep Learning', type: 'theory', maxClasses: 30, faculty: fac2._id, students: allStudents },
-      { courseCode: 'CS3104', name: 'Compiler Design', type: 'theory', maxClasses: 30, faculty: fac3._id, students: allStudents },
-      { courseCode: 'CS3202', name: 'Data Mining', type: 'theory', maxClasses: 30, faculty: fac4._id, students: allStudents },
-      { courseCode: 'CS3208', name: 'Internet and Web Technology', type: 'theory', maxClasses: 30, faculty: fac5._id, students: allStudents },
-      { courseCode: 'IP3403', name: 'Industrial Safety Engineering', type: 'theory', maxClasses: 30, faculty: fac6._id, students: allStudents },
+      { courseCode: 'BH3403', name: 'Entrepreneurship Development', type: 'theory', maxClasses: 30, faculty: [fac6._id], students: allStudents },
+      { courseCode: 'CS3102', name: 'Deep Learning', type: 'theory', maxClasses: 30, faculty: [fac1._id], students: allStudents },
+      { courseCode: 'CS3104', name: 'Compiler Design', type: 'theory', maxClasses: 30, faculty: [fac5._id], students: allStudents },
+      { courseCode: 'CS3202', name: 'Data Mining', type: 'theory', maxClasses: 30, faculty: [fac2._id], students: allStudents },
+      { courseCode: 'CS3208', name: 'Internet and Web Technology', type: 'theory', maxClasses: 30, faculty: [fac4._id], students: allStudents },
+      { courseCode: 'IP3403', name: 'Industrial Safety Engineering', type: 'theory', maxClasses: 30, faculty: [fac3._id], students: allStudents },
       // Labs - 10 classes per semester
-      { courseCode: 'CS3502', name: 'Deep Learning Laboratory', type: 'lab', maxClasses: 10, faculty: fac7._id, students: allStudents },
-      { courseCode: 'CS3504', name: 'Compiler Design Laboratory', type: 'lab', maxClasses: 10, faculty: fac8._id, students: allStudents },
-      { courseCode: 'CS3602', name: 'Project for Product Development - I', type: 'lab', maxClasses: 10, faculty: fac9._id, students: allStudents },
+      { courseCode: 'CS3502', name: 'Deep Learning Laboratory', type: 'lab', maxClasses: 10, faculty: [fac1._id], students: allStudents },
+      { courseCode: 'CS3504', name: 'Compiler Design Laboratory', type: 'lab', maxClasses: 10, faculty: [fac5._id], students: allStudents },
+      { courseCode: 'CS3602', name: 'Project for Product Development - I', type: 'lab', maxClasses: 10, faculty: [fac1._id, fac2._id, fac5._id, fac4._id, fac7._id, fac8._id], students: allStudents },
     ]);
 
     const attendanceRecords = [];
     const today = new Date();
+    const uniqueRecords = new Set();
 
     for (const course of courses) {
       const isLab = course.type === 'lab';
@@ -79,15 +80,23 @@ const seedData = async () => {
         const date = new Date(today);
         const dayOffset = isLab ? (day * 7 + 3) : (day + 1);
         date.setDate(today.getDate() - dayOffset);
-        if (date.getDay() === 0) date.setDate(date.getDate() - 1);
+        // Quick normalization
+        date.setHours(0,0,0,0);
+        if (date.getDay() === 0) date.setDate(date.getDate() - 2);
         if (date.getDay() === 6) date.setDate(date.getDate() - 1);
 
+        const dateStr = date.toISOString().split('T')[0];
+
         for (const studentId of allStudents) {
-          const rand = Math.random();
-          let status = 'present';
-          if (rand > 0.87) status = 'absent';
-          else if (rand > 0.82) status = 'leave';
-          attendanceRecords.push({ date, course: course._id, student: studentId, status });
+          const key = `${course._id}_${studentId}_${dateStr}`;
+          if (!uniqueRecords.has(key)) {
+            uniqueRecords.add(key);
+            const rand = Math.random();
+            let status = 'present';
+            if (rand > 0.87) status = 'absent';
+            else if (rand > 0.82) status = 'leave';
+            attendanceRecords.push({ date, course: course._id, student: studentId, status });
+          }
         }
       }
     }
@@ -110,7 +119,7 @@ const seedData = async () => {
     );
     console.log('');
     console.log('  👤 Students: 23110318 to 23110322');
-    console.log('  👨‍🏫 Faculty: FAC001 to FAC009');
+    console.log('  👨‍🏫 Faculty: FAC001 to FAC008');
     console.log('  🔑 Admin: admin@university.edu');
     console.log('  🔒 Password (all): password123');
     console.log(`  📊 ${attendanceRecords.length} attendance records generated`);

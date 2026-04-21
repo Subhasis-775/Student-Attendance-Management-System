@@ -6,7 +6,8 @@ const userSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true },
   registrationNumber: { type: String, default: null },
   password: { type: String, required: true },
-  role: { type: String, enum: ['student', 'faculty', 'admin'], default: 'student' }
+  role: { type: String, enum: ['student', 'faculty', 'admin'], default: 'student' },
+  lastWarningSentAt: { type: Date, default: null }
 }, { timestamps: true });
 
 // Create a partial unique index — only enforce uniqueness when the value actually exists

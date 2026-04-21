@@ -28,7 +28,7 @@ const createCourse = async (req, res) => {
   const cap = maxClasses || (courseType === 'lab' ? 10 : 30);
 
   try {
-    const course = await Course.create({ courseCode, name, faculty, type: courseType, maxClasses: cap });
+    const course = await Course.create({ courseCode, name, faculty: [faculty], type: courseType, maxClasses: cap });
     res.status(201).json(course);
   } catch (error) {
     if (error.code === 11000) {

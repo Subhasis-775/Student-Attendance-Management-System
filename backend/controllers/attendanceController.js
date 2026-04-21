@@ -1,21 +1,21 @@
+const mongoose = require('mongoose');
 const Attendance = require('../models/Attendance');
 const Course = require('../models/Course');
-const User = require('../models/User');
-const mongoose = require('mongoose');
+const {
+  getUtcDayBounds,
+  getMonthBounds,
+  summarizeStudent,
+  toPercent,
+  getStatusFields,
+} = require('../services/attendanceService');
 
-// ──────────────────────────────────────────────
-// HELPER: Validate ObjectId format
-// ──────────────────────────────────────────────
 const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
 
-// ──────────────────────────────────────────────
-// HELPER: Safe percentage calculation
-// Avoids division by zero and floating-point issues
-// ──────────────────────────────────────────────
-const calcPercentage = (present, total) => {
-  if (total <= 0) return 0;
-  // Use Math.round to avoid floating-point quirks (e.g. 74.999999 → 75)
-  return Math.round((present / total) * 10000) / 100;
+const canAccessCourse = (course, user) => {
+  if (!course || !user) return false;
+  if (user.role === 'admin') return true;
+  if (user.role === 'faculty') return course.faculty.some(f => f.toString() === user._id.toString());
+  return false;
 };
 
 // ──────────────────────────────────────────────
@@ -38,11 +38,11 @@ const markAttendance = async (req, res) => {
     return res.status(400).json({ message: 'Invalid courseId format' });
   }
 
-  // EDGE CASE #6c: Future date check
   const attendanceDate = new Date(date);
   if (isNaN(attendanceDate.getTime())) {
     return res.status(400).json({ message: 'Invalid date format' });
   }
+  const { start: normalizedDate } = getUtcDayBounds(attendanceDate);
 
   const today = new Date();
   today.setHours(23, 59, 59, 999); // Allow marking for today
@@ -51,46 +51,34 @@ const markAttendance = async (req, res) => {
   }
 
   try {
-    const course = await Course.findById(courseId);
+    const course = await Course.findById(courseId).select('faculty students courseCode name');
     if (!course) return res.status(404).json({ message: 'Course not found' });
-
-    // EDGE CASE #4: Check if marking attendance would exceed maxClasses
-    const existingCount = await Attendance.countDocuments({
-      course: courseId,
-      student: course.students[0], // check any enrolled student
-      date: { $ne: new Date(date) } // don't count current date (for updates)
-    });
-
-    if (existingCount >= course.maxClasses) {
-      return res.status(400).json({
-        message: `Max classes limit (${course.maxClasses}) already reached for this course`
-      });
+    if (!canAccessCourse(course, req.user)) {
+      return res.status(403).json({ message: 'Not authorized to mark attendance for this course' });
     }
 
-    // Validate each student entry
     const validStatuses = ['present', 'absent', 'leave'];
     const operations = [];
+    const enrolledSet = new Set(course.students.map((s) => s.toString()));
 
     for (const data of studentsData) {
-      // EDGE CASE #6b: Validate each studentId
       if (!data.studentId || !isValidObjectId(data.studentId)) {
         return res.status(400).json({ message: `Invalid studentId: ${data.studentId}` });
       }
+      if (!enrolledSet.has(data.studentId.toString())) {
+        return res.status(400).json({ message: `Student ${data.studentId} is not enrolled in this course` });
+      }
 
-      // EDGE CASE #6d: Validate status value
       if (!validStatuses.includes(data.status)) {
         return res.status(400).json({
           message: `Invalid status '${data.status}' for student ${data.studentId}. Must be: present, absent, or leave`
         });
       }
 
-      // EDGE CASE #1 & #7: upsert prevents duplicates AND handles double-submission
-      // If record exists → update it. If not → create it.
-      // This is idempotent: calling twice with same data produces same result.
       operations.push({
         updateOne: {
           filter: {
-            date: new Date(date),
+            date: normalizedDate,
             course: courseId,
             student: data.studentId
           },
@@ -100,7 +88,6 @@ const markAttendance = async (req, res) => {
       });
     }
 
-    // EDGE CASE #2: Auto-fill absent for enrolled students not in studentsData
     const submittedIds = new Set(studentsData.map(d => d.studentId));
     const enrolledIds = course.students.map(s => s.toString());
 
@@ -109,7 +96,7 @@ const markAttendance = async (req, res) => {
         operations.push({
           updateOne: {
             filter: {
-              date: new Date(date),
+              date: normalizedDate,
               course: courseId,
               student: enrolledId
             },
@@ -128,16 +115,15 @@ const markAttendance = async (req, res) => {
     res.json({
       message: 'Attendance marked successfully',
       summary: {
-        date: date,
+        date: normalizedDate,
         course: course.courseCode,
         total: enrolledIds.length,
         present: presentCount,
         absent: absentCount,
-        isUpdate: existingCount > 0 || false
+        semesterClassCap: course.maxClasses || (course.type === 'lab' ? 10 : 30)
       }
     });
   } catch (error) {
-    // EDGE CASE #1: Handle unique constraint violation gracefully
     if (error.code === 11000) {
       return res.status(409).json({ message: 'Duplicate attendance entry detected. Record already exists.' });
     }
@@ -157,13 +143,24 @@ const getCourseAttendance = async (req, res) => {
   }
 
   try {
+    const course = await Course.findById(courseId).select('faculty');
+    if (!course) return res.status(404).json({ message: 'Course not found' });
+
+    if (req.user.role === 'student') {
+      return res.status(403).json({ message: 'Students cannot access class attendance sheets' });
+    }
+    if (!canAccessCourse(course, req.user)) {
+      return res.status(403).json({ message: 'Not authorized to view this course attendance' });
+    }
+
     let filter = { course: courseId };
     if (date) {
       const parsedDate = new Date(date);
       if (isNaN(parsedDate.getTime())) {
         return res.status(400).json({ message: 'Invalid date format' });
       }
-      filter.date = parsedDate;
+      const { start, end } = getUtcDayBounds(parsedDate);
+      filter.date = { $gte: start, $lt: end };
     }
 
     const records = await Attendance.find(filter).populate('student', 'name email registrationNumber');
@@ -178,86 +175,26 @@ const getCourseAttendance = async (req, res) => {
 // ──────────────────────────────────────────────
 const getAttendanceStats = async (req, res) => {
   try {
-    const studentId = req.user._id;
-
-    // Find ALL courses this student is enrolled in
-    const enrolledCourses = await Course.find({ students: studentId })
-      .select('name courseCode type maxClasses createdAt');
-
-    // Fetch all attendance records for this student
-    const records = await Attendance.find({ student: studentId })
-      .populate('course', 'name courseCode type maxClasses');
-
-    // Group records by course
-    const recordsByCourse = {};
-    records.forEach(r => {
-      // EDGE CASE: Skip orphaned records (course was deleted)
-      if (!r.course) return;
-      const courseId = r.course._id.toString();
-      if (!recordsByCourse[courseId]) {
-        recordsByCourse[courseId] = { course: r.course, records: [] };
-      }
-      recordsByCourse[courseId].records.push(r);
-    });
-
-    const finalStats = enrolledCourses.map(course => {
-      const courseId = course._id.toString();
-      const maxCap = course.maxClasses || 30;
-      const courseType = course.type || 'theory';
-      const courseData = recordsByCourse[courseId];
-
-      // EDGE CASE #3: No records → 0% (not NaN), not eligible
-      if (!courseData || courseData.records.length === 0) {
-        return {
-          course: { _id: course._id, name: course.name, courseCode: course.courseCode, type: courseType, maxClasses: maxCap },
-          percentage: '0.00',
-          isEligible: false,
-          cappedTotalClasses: 0,
-          cappedPresentClasses: 0,
-        };
-      }
-
-      let totalPresent = 0;
-      let totalClasses = 0;
-
-      // EDGE CASE #5: Only count records from after student joined
-      // Use the student's enrollment date (course.createdAt as proxy)
-      // or just count all records that exist for this student
-      courseData.records.forEach(r => {
-        totalClasses += 1;
-        if (r.status === 'present' || r.status === 'leave') totalPresent += 1;
-      });
-
-      // EDGE CASE #4: Cap at maxClasses (30 for theory, 10 for labs)
-      const cappedTotal = Math.min(totalClasses, maxCap);
-      const cappedPresent = Math.min(totalPresent, cappedTotal);
-
-      // EDGE CASE #3 & #9: Safe percentage with proper rounding
-      const percentage = calcPercentage(cappedPresent, cappedTotal);
-
-      // EDGE CASE #9: >= 75 means exactly 75.00% IS eligible
-      const isEligible = percentage >= 75;
-
-      return {
-        course: { _id: course._id, name: course.name, courseCode: course.courseCode, type: courseType, maxClasses: maxCap },
-        percentage: percentage.toFixed(2),
-        isEligible,
-        cappedTotalClasses: cappedTotal,
-        cappedPresentClasses: cappedPresent,
-      };
-    });
-
+    if (req.user.role !== 'student') {
+      return res.status(403).json({ message: 'Only students can access personal attendance stats' });
+    }
+    const data = await summarizeStudent({ studentId: req.user._id.toString() });
+    const finalStats = data.courses.map((item) => ({
+      course: item.course,
+      percentage: item.percentage,
+      isEligible: item.eligibility === 'Eligible',
+      cappedTotalClasses: item.totalClasses,
+      cappedPresentClasses: item.attended,
+    }));
     res.json(finalStats);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
-// ──────────────────────────────────────────────
-// GET /api/attendance/report/:courseId — Faculty report
-// ──────────────────────────────────────────────
 const getCourseReport = async (req, res) => {
   const { courseId } = req.params;
+  const { month } = req.query;
 
   if (!isValidObjectId(courseId)) {
     return res.status(400).json({ message: 'Invalid courseId' });
@@ -266,9 +203,18 @@ const getCourseReport = async (req, res) => {
   try {
     const course = await Course.findById(courseId).populate('students', 'name email registrationNumber');
     if (!course) return res.status(404).json({ message: 'Course not found' });
+    if (!canAccessCourse(course, req.user)) {
+      return res.status(403).json({ message: 'Not authorized to view this course report' });
+    }
 
-    const maxCap = course.maxClasses || 30;
-    const records = await Attendance.find({ course: courseId });
+    let dateFilter = {};
+    if (month) {
+      const bounds = getMonthBounds(month);
+      if (!bounds) return res.status(400).json({ message: 'Invalid month. Use YYYY-MM format' });
+      dateFilter = { date: { $gte: bounds.start, $lt: bounds.end } };
+    }
+
+    const records = await Attendance.find({ course: courseId, ...dateFilter });
 
     const report = course.students.map(student => {
       const studentRecords = records.filter(r => r.student.toString() === student._id.toString());
@@ -279,20 +225,21 @@ const getCourseReport = async (req, res) => {
         if (r.status === 'present' || r.status === 'leave') totalPresent += 1;
       });
 
-      // EDGE CASE #4: Cap at maxClasses
-      const cappedTotal = Math.min(totalClasses, maxCap);
+      const semesterCap = course.maxClasses || (course.type === 'lab' ? 10 : 30);
+      const cappedTotal = Math.min(totalClasses, semesterCap);
       const cappedPresent = Math.min(totalPresent, cappedTotal);
-
-      // EDGE CASE #3 & #9: Safe calculation
-      const percentage = calcPercentage(cappedPresent, cappedTotal);
+      const percentage = toPercent(cappedPresent, cappedTotal);
+      const status = getStatusFields(percentage);
 
       return {
         student: { _id: student._id, name: student.name, email: student.email, registrationNumber: student.registrationNumber },
         present: cappedPresent,
         total: cappedTotal,
         absent: cappedTotal - cappedPresent,
-        percentage: percentage.toFixed(2),
-        isEligible: percentage >= 75,
+        percentage: status.percentage,
+        isEligible: status.eligibility === 'Eligible',
+        belowThreshold: status.belowThreshold,
+        eligibility: status.eligibility,
       };
     });
 
@@ -300,7 +247,9 @@ const getCourseReport = async (req, res) => {
     report.sort((a, b) => parseFloat(a.percentage) - parseFloat(b.percentage));
 
     res.json({
-      course: { _id: course._id, name: course.name, courseCode: course.courseCode, type: course.type, maxClasses: maxCap },
+      course: { _id: course._id, name: course.name, courseCode: course.courseCode, type: course.type, maxClasses: course.maxClasses },
+      month: month || null,
+      semesterClassCap: course.maxClasses || (course.type === 'lab' ? 10 : 30),
       report
     });
   } catch (error) {
@@ -308,4 +257,82 @@ const getCourseReport = async (req, res) => {
   }
 };
 
-module.exports = { markAttendance, getCourseAttendance, getAttendanceStats, getCourseReport };
+const getMonthlyAttendance = async (req, res) => {
+  const { month, studentId } = req.query;
+  if (!month) return res.status(400).json({ message: 'month is required in YYYY-MM format' });
+
+  try {
+    let targetStudentId = studentId;
+    if (req.user.role === 'student') {
+      targetStudentId = req.user._id.toString();
+    } else if (!targetStudentId) {
+      return res.status(400).json({ message: 'studentId is required for admin/faculty requests' });
+    }
+
+    if (!isValidObjectId(targetStudentId)) {
+      return res.status(400).json({ message: 'Invalid studentId' });
+    }
+
+    const summary = await summarizeStudent({ studentId: targetStudentId, month });
+    res.json(summary);
+  } catch (error) {
+    if (error.message === 'INVALID_MONTH') {
+      return res.status(400).json({ message: 'Invalid month. Use YYYY-MM format' });
+    }
+    res.status(500).json({ message: error.message });
+  }
+};
+
+const getCumulativeAttendance = async (req, res) => {
+  const { studentId } = req.query;
+  try {
+    let targetStudentId = studentId;
+    if (req.user.role === 'student') {
+      targetStudentId = req.user._id.toString();
+    } else if (!targetStudentId) {
+      return res.status(400).json({ message: 'studentId is required for admin/faculty requests' });
+    }
+
+    if (!isValidObjectId(targetStudentId)) {
+      return res.status(400).json({ message: 'Invalid studentId' });
+    }
+
+    const summary = await summarizeStudent({ studentId: targetStudentId });
+    res.json(summary);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+const getAdminCumulativeOverview = async (req, res) => {
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({ message: 'Only admin can view cumulative overview' });
+  }
+
+  try {
+    const students = await Course.aggregate([
+      { $unwind: '$students' },
+      { $group: { _id: '$students' } },
+    ]);
+    const studentIds = students.map((s) => s._id.toString());
+
+    const summaries = [];
+    for (const id of studentIds) {
+      const summary = await summarizeStudent({ studentId: id });
+      summaries.push({ studentId: id, ...summary.overall });
+    }
+    res.json(summaries);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+module.exports = {
+  markAttendance,
+  getCourseAttendance,
+  getAttendanceStats,
+  getCourseReport,
+  getMonthlyAttendance,
+  getCumulativeAttendance,
+  getAdminCumulativeOverview,
+};

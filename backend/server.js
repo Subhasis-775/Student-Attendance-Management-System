@@ -16,5 +16,8 @@ app.use('/api/attendance', require('./routes/attendanceRoutes'));
 app.use('/api/admin', require('./routes/adminRoutes'));
 app.use('/api/leave', require('./routes/leaveRoutes'));
 
+const { initCronJobs } = require('./services/cronService');
+initCronJobs();
+
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

@@ -92,14 +92,14 @@ const FacultyLeave = () => {
                 pendingLeaves.map(l => (
                   <tr key={l._id}>
                     <td>
-                       <div style={{ fontWeight: 500, color: 'var(--gray-900)' }}>{l.student.name}</div>
-                       <div style={{ fontSize: '11px', color: 'var(--gray-500)' }}>{l.student.registrationNumber || 'No ID'}</div>
+                       <div style={{ fontWeight: 500, color: 'var(--text-primary)' }}>{l.student.name}</div>
+                       <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>{l.student.registrationNumber || 'No ID'}</div>
                     </td>
                     <td>
-                      <div style={{ fontWeight: 500, color: 'var(--gray-700)' }}>{new Date(l.date).toLocaleDateString()}</div>
-                      <div style={{ fontSize: '11px', color: 'var(--gray-500)' }}>{l.course?.courseCode} — {l.course?.name}</div>
+                      <div style={{ fontWeight: 500, color: 'var(--text-primary)' }}>{new Date(l.date).toLocaleDateString()}</div>
+                      <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>{l.course?.courseCode} — {l.course?.name}</div>
                     </td>
-                    <td style={{ maxWidth: '300px', fontSize: '12px', color: 'var(--gray-700)', lineHeight: '1.4' }}>
+                    <td style={{ maxWidth: '300px', fontSize: '12px', color: 'var(--text-primary)', lineHeight: '1.4' }}>
                       {l.reason}
                     </td>
                     <td>
@@ -121,7 +121,7 @@ const FacultyLeave = () => {
       </div>
 
       {/* History */}
-      <h3 className="section-title mb-4" style={{ padding: '0 4px', color: 'var(--gray-500)', fontSize: '14px' }}>Processed Applications ({pastLeaves.length})</h3>
+      <h3 className="section-title mb-4" style={{ padding: '0 4px', color: 'var(--text-secondary)', fontSize: '14px' }}>Processed Applications ({pastLeaves.length})</h3>
       <div className="table-container" style={{ opacity: 0.8 }}>
           <table className="table-clean" style={{ background: 'transparent' }}>
             <thead><tr><th>Student</th><th>Course</th><th>Date</th><th>Final Status</th></tr></thead>
