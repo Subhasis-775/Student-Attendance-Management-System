@@ -9,7 +9,7 @@ connectDB();
 const app = express();
 app.use(cors());
 app.use(express.json());
-
+app.get('/', (req, res) => res.send('API running'));
 // Routes
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/attendance', require('./routes/attendanceRoutes'));
