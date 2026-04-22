@@ -305,26 +305,46 @@ const getCumulativeAttendance = async (req, res) => {
 };
 
 const getAdminCumulativeOverview = async (req, res) => {
-  if (req.user.role !== 'admin') {
-    return res.status(403).json({ message: 'Only admin can view cumulative overview' });
-  }
-
   try {
-    const students = await Course.aggregate([
-      { $unwind: '$students' },
-      { $group: { _id: '$students' } },
+    const result = await Attendance.aggregate([
+      {
+        $group: {
+          _id: "$student",
+          total: { $sum: 1 },
+          present: {
+            $sum: {
+              $cond: [
+                { $in: ["$status", ["present", "leave"]] },
+                1,
+                0
+              ]
+            }
+          }
+        }
+      },
+      {
+        $project: {
+          studentId: "$_id",
+          percentage: {
+            $multiply: [{ $divide: ["$present", "$total"] }, 100]
+          },
+          totalClasses: "$total",
+          attended: "$present",
+          belowThreshold: {
+            $lt: [
+              {
+                $multiply: [{ $divide: ["$present", "$total"] }, 100]
+              },
+              75
+            ]
+          }
+        }
+      }
     ]);
-    const studentIds = students.map((s) => s._id.toString());
 
-    const summaries = await Promise.all(
-      studentIds.map(async (id) => {
-        const summary = await summarizeStudent({ studentId: id });
-        return { studentId: id, ...summary.overall };
-      })
-    );
-    res.json(summaries);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
   }
 };
 
