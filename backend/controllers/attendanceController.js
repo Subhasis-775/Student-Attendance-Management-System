@@ -316,11 +316,12 @@ const getAdminCumulativeOverview = async (req, res) => {
     ]);
     const studentIds = students.map((s) => s._id.toString());
 
-    const summaries = [];
-    for (const id of studentIds) {
-      const summary = await summarizeStudent({ studentId: id });
-      summaries.push({ studentId: id, ...summary.overall });
-    }
+    const summaries = await Promise.all(
+      studentIds.map(async (id) => {
+        const summary = await summarizeStudent({ studentId: id });
+        return { studentId: id, ...summary.overall };
+      })
+    );
     res.json(summaries);
   } catch (error) {
     res.status(500).json({ message: error.message });

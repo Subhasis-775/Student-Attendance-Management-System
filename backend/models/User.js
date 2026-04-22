@@ -7,6 +7,8 @@ const userSchema = new mongoose.Schema({
   registrationNumber: { type: String, default: null },
   password: { type: String, required: true },
   role: { type: String, enum: ['student', 'faculty', 'admin'], default: 'student' },
+  branch: { type: String, default: 'CSE' },
+  semester: { type: Number, default: 6 },
   lastWarningSentAt: { type: Date, default: null }
 }, { timestamps: true });
 

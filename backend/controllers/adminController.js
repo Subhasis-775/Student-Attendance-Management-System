@@ -6,7 +6,7 @@ const mongoose = require('mongoose');
 const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
 
 const createCourse = async (req, res) => {
-  const { courseCode, name, faculty, type, maxClasses } = req.body;
+  const { courseCode, name, faculty, type, maxClasses, branch, semester } = req.body;
 
   // Validation
   if (!courseCode || !name || !faculty) {
@@ -28,7 +28,7 @@ const createCourse = async (req, res) => {
   const cap = maxClasses || (courseType === 'lab' ? 10 : 30);
 
   try {
-    const course = await Course.create({ courseCode, name, faculty: [faculty], type: courseType, maxClasses: cap });
+    const course = await Course.create({ courseCode, name, faculty: [faculty], type: courseType, maxClasses: cap, branch: branch || 'CSE', semester: semester || 6 });
     res.status(201).json(course);
   } catch (error) {
     if (error.code === 11000) {
@@ -39,7 +39,7 @@ const createCourse = async (req, res) => {
 };
 
 const createUser = async (req, res) => {
-  const { name, email, password, role, registrationNumber } = req.body;
+  const { name, email, password, role, registrationNumber, branch, semester } = req.body;
 
   if (!name || !email || !password) {
     return res.status(400).json({ message: 'name, email, and password are required' });
@@ -55,12 +55,15 @@ const createUser = async (req, res) => {
     const user = await User.create({
       name, email, password,
       role: role || 'student',
-      registrationNumber: registrationNumber?.trim() || null
+      registrationNumber: registrationNumber?.trim() || null,
+      branch: branch || 'CSE',
+      semester: semester || 6
     });
     // Don't return password
     res.status(201).json({
       _id: user._id, name: user.name, email: user.email,
-      registrationNumber: user.registrationNumber, role: user.role
+      registrationNumber: user.registrationNumber, role: user.role,
+      branch: user.branch, semester: user.semester
     });
   } catch (error) {
     if (error.code === 11000) {
@@ -135,7 +138,10 @@ const enrollStudentAll = async (req, res) => {
     if (!student) return res.status(404).json({ message: 'Student not found' });
     if (student.role !== 'student') return res.status(400).json({ message: 'User is not a student' });
 
-    const courses = await Course.find({});
+    const courses = await Course.find({
+      branch: student.branch,
+      semester: student.semester
+    });
     let enrolledCount = 0;
 
     for (const course of courses) {
@@ -146,7 +152,7 @@ const enrollStudentAll = async (req, res) => {
       }
     }
 
-    res.json({ message: `${student.name} enrolled in ${enrolledCount} new courses (${courses.length} total)` });
+    res.json({ message: `${student.name} enrolled in ${enrolledCount} new courses (found ${courses.length} matching branch and semester)` });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -194,6 +200,8 @@ const bulkUploadUsers = async (req, res) => {
       const parsedEmailRaw = findVal(data, ['email', 'emailaddress']);
       const parsedRoleRaw = findVal(data, ['role']);
       const parsedPasswordRaw = findVal(data, ['password']);
+      const parsedBranchRaw = findVal(data, ['branch', 'department']);
+      const parsedSemesterRaw = findVal(data, ['semester', 'sem']);
 
       // Basic validation
       if (!parsedName || !parsedRegNum) {
@@ -210,7 +218,9 @@ const bulkUploadUsers = async (req, res) => {
         email: parsedEmail,
         password: parsedPasswordRaw || 'password123',
         role: parsedRoleRaw ? parsedRoleRaw.trim().toLowerCase() : 'student',
-        registrationNumber: parsedRegNum.trim()
+        registrationNumber: parsedRegNum.trim(),
+        branch: parsedBranchRaw ? parsedBranchRaw.trim().toUpperCase() : 'CSE',
+        semester: parsedSemesterRaw && !isNaN(parseInt(parsedSemesterRaw.trim())) ? parseInt(parsedSemesterRaw.trim()) : 6
       });
     })
     .on('end', async () => {
